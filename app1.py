@@ -39,6 +39,7 @@ def hitung_vswr(power_output, reflected):
 # ===========================
 # Fungsi untuk Load Data 
 # ===========================
+@st.cache_data(ttl=600) # FIX 1: Tambahkan caching untuk konsistensi di deployment
 def load_data(sheet_name):
     """Memuat data dari file Excel, sheet tertentu. Membuat DataFrame kosong jika error."""
     if os.path.exists(data_file):
@@ -68,6 +69,11 @@ def load_data(sheet_name):
 # ===========================
 def save_data(df, sheet_name):
     """Menyimpan DataFrame ke sheet tertentu dalam file Excel."""
+    
+    # Hapus cache lama agar data yang baru tersimpan langsung terlihat setelah save
+    if 'load_data' in globals():
+        load_data.clear()
+        
     try:
         # Muat semua sheet yang ada, kecuali sheet yang akan diupdate
         sheets_data = {}
@@ -742,186 +748,179 @@ def show_input_kalkulator():
 def show_visualisasi_data():
     st.title("📊 Visualisasi Data")
     
-    # Memuat data dari sheet pertama (data metering)
-    if os.path.exists(data_file):
-        try:
-            # Asumsi sheet data metering adalah sheet pertama (index 0)
-            df = pd.read_excel(data_file, sheet_name=0) 
+    # FIX 2: Ganti pembacaan file langsung dengan fungsi load_data yang sudah di-cache
+    df = load_data('Sheet1') 
+    
+    # Jika DataFrame kosong, berikan info dan hentikan eksekusi
+    if df.empty:
+        st.info("⚠️ Belum ada data. Silakan input dulu di menu Input Data & Kalkulator.")
+        return # Tambahkan return agar kode visualisasi di bawah tidak dieksekusi
+
+    # Lanjutkan ke pemrosesan data dan visualisasi
+    
+    # Format datetime
+    df["TANGGAL"] = pd.to_datetime(df["TANGGAL"])
+    df["DATETIME"] = pd.to_datetime(df["TANGGAL"].astype(str) + " " + df["WAKTU"].astype(str), errors="coerce")
+    df = df.dropna(subset=["DATETIME"]).sort_values("DATETIME")
+    
+    # Inisialisasi df_group sebagai DataFrame kosong
+    df_group = pd.DataFrame()
+
+    st.subheader("Grafik Tren Parameter")
+    opsi_agregasi = st.radio("Pilih Periode Visualisasi:", ["Harian", "Bulan"], horizontal=True) 
+
+    # Filter sesuai opsi
+    if opsi_agregasi == "Harian":
+        if not df.empty:
+            default_date = df["TANGGAL"].max().date() if not df.empty else datetime.date.today()
+            pilih_tanggal = st.date_input("Pilih Tanggal", value=default_date, max_value=df["TANGGAL"].max().date())
+            df_group = df[df["TANGGAL"].dt.date == pilih_tanggal]
+        else:
+            st.info("Tidak ada data untuk ditampilkan.")
+
+    else:  # Rentang Tanggal
+        st.write("Pilih rentang tanggal untuk visualisasi.")
+        
+        if not df.empty:
+            min_date = df["TANGGAL"].min().date()
+            max_date = df["TANGGAL"].max().date()
+
+            col_start, col_end = st.columns(2)
             
-            # Jika DataFrame kosong, berikan info dan lanjut
-            if df.empty:
-                st.info("⚠️ Belum ada data. Silakan input dulu di menu Input Data & Kalkulator.")
+            start_date = col_start.date_input(
+                "Tanggal Awal (Start Date)", 
+                value=min_date, 
+                min_value=min_date, 
+                max_value=max_date,
+                key="viz_start_date" 
+            )
+            
+            end_date = col_end.date_input(
+                "Tanggal Akhir (End Date)", 
+                value=max_date,
+                min_value=min_date,
+                max_value=max_date,
+                key="viz_end_date" 
+            )
+
+            # Logika filter rentang tanggal
+            if start_date > end_date:
+                st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir.")
+                df_group = pd.DataFrame() 
             else:
-                # Format datetime
-                df["TANGGAL"] = pd.to_datetime(df["TANGGAL"])
-                df["DATETIME"] = pd.to_datetime(df["TANGGAL"].astype(str) + " " + df["WAKTU"].astype(str), errors="coerce")
-                df = df.dropna(subset=["DATETIME"]).sort_values("DATETIME")
+                start_datetime = pd.to_datetime(start_date)
+                end_datetime_exclusive = pd.to_datetime(end_date) + pd.Timedelta(days=1)
                 
-                # Inisialisasi df_group sebagai DataFrame kosong
-                df_group = pd.DataFrame()
+                df_group = df[(df["DATETIME"] >= start_datetime) & (df["DATETIME"] < end_datetime_exclusive)].copy()
+        else:
+            st.info("Tidak ada data untuk ditampilkan.")
 
-                st.subheader("Grafik Tren Parameter")
-                opsi_agregasi = st.radio("Pilih Periode Visualisasi:", ["Harian", "Bulan"], horizontal=True) 
+    # 🔹 Parameter
+    parameter = st.multiselect(
+        "Pilih Parameter untuk Ditampilkan:",
+        ["POWER OUTPUT (WATT)", "VSWR", "C/N (dB)", "MARGIN (dB)",
+         "TEGANGAN LISTRIK R (Volt)", "TEGANGAN LISTRIK S (Volt)",
+         "TEGANGAN LISTRIK T (Volt)", "SUHU TX"],
+        default=["POWER OUTPUT (WATT)", "VSWR"]
+    )
 
-                # Filter sesuai opsi
-                if opsi_agregasi == "Harian":
-                    if not df.empty:
-                        default_date = df["TANGGAL"].max().date() if not df.empty else datetime.date.today()
-                        pilih_tanggal = st.date_input("Pilih Tanggal", value=default_date, max_value=df["TANGGAL"].max().date())
-                        df_group = df[df["TANGGAL"].dt.date == pilih_tanggal]
-                    else:
-                        st.info("Tidak ada data untuk ditampilkan.")
+    if parameter and not df_group.empty:
+        fig, ax = plt.subplots(figsize=(12, 5))
 
-                else:  # Rentang Tanggal
-                    st.write("Pilih rentang tanggal untuk visualisasi.")
-                    
-                    if not df.empty:
-                        min_date = df["TANGGAL"].min().date()
-                        max_date = df["TANGGAL"].max().date()
+        if opsi_agregasi == "Harian":
+            for col in parameter:
+                ax.scatter(df_group["DATETIME"], df_group[col], label=col)
+            if len(df_group["DATETIME"]) > 0:
+                ax.set_xticks(df_group["DATETIME"])
+                ax.set_xticklabels(df_group["DATETIME"].dt.strftime("%H:%M"), rotation=45)
+            ax.set_xlabel("Jam")
 
-                        col_start, col_end = st.columns(2)
-                        
-                        start_date = col_start.date_input(
-                            "Tanggal Awal (Start Date)", 
-                            value=min_date, 
-                            min_value=min_date, 
-                            max_value=max_date,
-                            key="viz_start_date" 
-                        )
-                        
-                        end_date = col_end.date_input(
-                            "Tanggal Akhir (End Date)", 
-                            value=max_date,
-                            min_value=min_date,
-                            max_value=max_date,
-                            key="viz_end_date" 
-                        )
+        else:  # Rentang Tanggal
+            for col in parameter:
+                ax.plot(df_group["DATETIME"], df_group[col], marker="o", label=col)
+            ax.set_xlabel("Tanggal dan Waktu")
 
-                        # Logika filter rentang tanggal
-                        if start_date > end_date:
-                            st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir.")
-                            df_group = pd.DataFrame() 
-                        else:
-                            start_datetime = pd.to_datetime(start_date)
-                            end_datetime_exclusive = pd.to_datetime(end_date) + pd.Timedelta(days=1)
-                            
-                            df_group = df[(df["DATETIME"] >= start_datetime) & (df["DATETIME"] < end_datetime_exclusive)].copy()
-                    else:
-                        st.info("Tidak ada data untuk ditampilkan.")
+        ax.set_ylabel("Nilai")
+        ax.set_title(f"Grafik Parameter Transmisi ({opsi_agregasi})")
+        ax.legend()
+        ax.grid(True)
+        plt.tight_layout()
+        st.pyplot(fig)
 
-                # 🔹 Parameter
-                parameter = st.multiselect(
-                    "Pilih Parameter untuk Ditampilkan:",
-                    ["POWER OUTPUT (WATT)", "VSWR", "C/N (dB)", "MARGIN (dB)",
-                     "TEGANGAN LISTRIK R (Volt)", "TEGANGAN LISTRIK S (Volt)",
-                     "TEGANGAN LISTRIK T (Volt)", "SUHU TX"],
-                    default=["POWER OUTPUT (WATT)", "VSWR"]
-                )
+    elif parameter and df_group.empty:
+        st.warning("⚠️ Tidak ada data untuk rentang yang dipilih.")
+    
+    # ===========================
+    # Data Tersimpan + Pilihan Tampilan
+    # ===========================
+    st.subheader("📑 Data Tersimpan (Metering)")
 
-                if parameter and not df_group.empty:
-                    fig, ax = plt.subplots(figsize=(12, 5))
+    opsi_tampilan = st.selectbox("Tampilkan berapa baris terakhir?", ["5", "10", "100", "Semua"], index=0)
 
-                    if opsi_agregasi == "Harian":
-                        for col in parameter:
-                            ax.scatter(df_group["DATETIME"], df_group[col], label=col)
-                        if len(df_group["DATETIME"]) > 0:
-                            ax.set_xticks(df_group["DATETIME"])
-                            ax.set_xticklabels(df_group["DATETIME"].dt.strftime("%H:%M"), rotation=45)
-                        ax.set_xlabel("Jam")
-
-                    else:  # Rentang Tanggal
-                        for col in parameter:
-                            ax.plot(df_group["DATETIME"], df_group[col], marker="o", label=col)
-                        ax.set_xlabel("Tanggal dan Waktu")
-
-                    ax.set_ylabel("Nilai")
-                    ax.set_title(f"Grafik Parameter Transmisi ({opsi_agregasi})")
-                    ax.legend()
-                    ax.grid(True)
-                    plt.tight_layout()
-                    st.pyplot(fig)
-
-                elif parameter and df_group.empty:
-                    st.warning("⚠️ Tidak ada data untuk rentang yang dipilih.")
-                
-                # ===========================
-                # Data Tersimpan + Pilihan Tampilan
-                # ===========================
-                st.subheader("📑 Data Tersimpan (Metering)")
-
-                opsi_tampilan = st.selectbox("Tampilkan berapa baris terakhir?", ["5", "10", "100", "Semua"], index=0)
-
-                if opsi_tampilan == "5":
-                    st.dataframe(df.tail(5), use_container_width=True)
-                elif opsi_tampilan == "10":
-                    st.dataframe(df.tail(10), use_container_width=True)
-                elif opsi_tampilan == "100":
-                    st.dataframe(df.tail(100), use_container_width=True)
-                else:
-                    st.dataframe(df, use_container_width=True)
-
-                # ===========================
-                # Download Data (Filter per Rentang Tanggal)
-                # ===========================
-                st.subheader("📥 Download Data (Metering)")
-                st.write("Pilih rentang tanggal untuk data yang ingin diunduh.")
-
-                min_date_dl = df["TANGGAL"].min().date()
-                max_date_dl = df["TANGGAL"].max().date()
-
-                col_start_dl, col_end_dl = st.columns(2)
-
-                start_date_dl = col_start_dl.date_input(
-                    "Tanggal Awal Download", 
-                    value=min_date_dl, 
-                    min_value=min_date_dl, 
-                    max_value=max_date_dl,
-                    key="dl_start_date"
-                )
-
-                end_date_dl = col_end_dl.date_input(
-                    "Tanggal Akhir Download", 
-                    value=max_date_dl,
-                    min_value=min_date_dl,
-                    max_value=max_date_dl,
-                    key="dl_end_date"
-                )
-                
-                df_download = df.copy()
-
-                if start_date_dl > end_date_dl:
-                    st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir untuk proses download.")
-                    df_download = pd.DataFrame() 
-                else:
-                    start_datetime_dl = pd.to_datetime(start_date_dl)
-                    end_datetime_exclusive_dl = pd.to_datetime(end_date_dl) + pd.Timedelta(days=1)
-                    
-                    df_download = df[(df["DATETIME"] >= start_datetime_dl) & (df["DATETIME"] < end_datetime_exclusive_dl)].copy()
-
-                # Drop kolom DATETIME sebelum download
-                df_download = df_download.drop(columns=['DATETIME'], errors='ignore')
-
-                if not df_download.empty:
-                    buffer = BytesIO()
-                    df_download.to_excel(buffer, index=False)
-                    buffer.seek(0)
-
-                    st.download_button(
-                        label="⬇️ Download Data (Excel)",
-                        data=buffer,
-                        file_name=f"metering_{start_date_dl}_to_{end_date_dl}.xlsx", 
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                else:
-                    st.warning("Pilih rentang tanggal yang valid atau pastikan ada data dalam rentang tersebut untuk mengunduh.")
-
-
-        except FileNotFoundError:
-            st.info("⚠️ Belum ada data. Silakan input dulu di Tab 1.")
-        except Exception as e:
-            st.error(f"Error saat memuat atau memproses data metering: {e}")
+    if opsi_tampilan == "5":
+        st.dataframe(df.tail(5), use_container_width=True)
+    elif opsi_tampilan == "10":
+        st.dataframe(df.tail(10), use_container_width=True)
+    elif opsi_tampilan == "100":
+        st.dataframe(df.tail(100), use_container_width=True)
     else:
-        st.info("⚠️ Belum ada data. Silakan input dulu di Tab 1.")
+        st.dataframe(df, use_container_width=True)
+
+    # ===========================
+    # Download Data (Filter per Rentang Tanggal)
+    # ===========================
+    st.subheader("📥 Download Data (Metering)")
+    st.write("Pilih rentang tanggal untuk data yang ingin diunduh.")
+
+    min_date_dl = df["TANGGAL"].min().date()
+    max_date_dl = df["TANGGAL"].max().date()
+
+    col_start_dl, col_end_dl = st.columns(2)
+
+    start_date_dl = col_start_dl.date_input(
+        "Tanggal Awal Download", 
+        value=min_date_dl, 
+        min_value=min_date_dl, 
+        max_value=max_date_dl,
+        key="dl_start_date"
+    )
+
+    end_date_dl = col_end_dl.date_input(
+        "Tanggal Akhir Download", 
+        value=max_date_dl,
+        min_value=min_date_dl,
+        max_value=max_date_dl,
+        key="dl_end_date"
+    )
+    
+    df_download = df.copy()
+
+    if start_date_dl > end_date_dl:
+        st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir untuk proses download.")
+        df_download = pd.DataFrame() 
+    else:
+        start_datetime_dl = pd.to_datetime(start_date_dl)
+        end_datetime_exclusive_dl = pd.to_datetime(end_date_dl) + pd.Timedelta(days=1)
+        
+        df_download = df[(df["DATETIME"] >= start_datetime_dl) & (df["DATETIME"] < end_datetime_exclusive_dl)].copy()
+
+    # Drop kolom DATETIME sebelum download
+    df_download = df_download.drop(columns=['DATETIME'], errors='ignore')
+
+    if not df_download.empty:
+        buffer = BytesIO()
+        df_download.to_excel(buffer, index=False)
+        buffer.seek(0)
+
+        st.download_button(
+            label="⬇️ Download Data (Excel)",
+            data=buffer,
+            file_name=f"metering_{start_date_dl}_to_{end_date_dl}.xlsx", 
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.warning("Pilih rentang tanggal yang valid atau pastikan ada data dalam rentang tersebut untuk mengunduh.")
+
 
 # ===========================
 # Fungsi Halaman Ceklist (Pengganti Tab 3)
