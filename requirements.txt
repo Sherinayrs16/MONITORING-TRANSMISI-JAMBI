@@ -3,4 +3,3 @@ pandas==2.2.0
 matplotlib==3.8.0
 openpyxl
 streamlit-gsheets-connection==0.6.1
-
