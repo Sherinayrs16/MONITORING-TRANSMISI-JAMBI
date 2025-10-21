@@ -6,7 +6,8 @@ from io import BytesIO
 import datetime 
 import base64 # Diperlukan untuk background image
 
-# --- PERUBAHAN: 'from streamlit_gsheets import GSheetsConnection' SUDAH DIHAPUS ---
+# --- PERUBAHAN: Import GSheetsConnection ---
+from streamlit_gsheets import GSheetsConnection
 
 # ===========================
 # Konfigurasi Halaman (Landscape)
@@ -25,13 +26,15 @@ if 'logged_in' not in st.session_state:
 # Nama file Excel & Sheet Catatan
 # *Pastikan nama sheet metering konsisten: 'Sheet1'*
 # ===========================
-data_sheet = "Sheet1" # Sheet default untuk data metering
+# --- PERUBAHAN: Hapus data_file, ini sekarang diatur di st.secrets ---
+# data_file = "metering_mux.xlsx" 
+data_sheet = "Sheet1" # Sheet default untuk data metering (Sesuai dengan cara simpan di show_input_kalkulator)
 notes_sheet = "CATATAN_HARIAN" 
 
-# --- PERUBAHAN: Inisialisasi koneksi Google Sheets (Versi Resmi) ---
-# Ini akan otomatis menggunakan 'streamlit-gsheets-connection' dari requirements.txt
-# dan 'secrets' Anda
-conn = st.connection("gsheets")
+# --- PERUBAHAN: Inisialisasi koneksi Google Sheets ---
+# Streamlit akan secara otomatis menggunakan [connections.gsheets] dari st.secrets
+# yang baru saja Anda konfigurasikan
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ===========================
 # Fungsi menghitung VSWR
@@ -51,12 +54,13 @@ def load_data(sheet_name):
     """Memuat data dari Google Sheet, sheet tertentu. Membuat DataFrame kosong jika error."""
     try:
         # Baca data dari Google Sheet menggunakan koneksi yang sudah dibuat
+        # ttl=60 -> Cache data selama 60 detik untuk mengurangi panggilan API
         df = conn.read(sheet=sheet_name, ttl=60)
         
         # Hapus baris yang semua kolomnya kosong (sering terjadi di GSheets)
         df = df.dropna(how='all') 
         
-        # Pastikan kolom tanggal berupa datetime
+        # Pastikan kolom tanggal berupa datetime (Logika dari kode asli dipertahankan)
         if 'TANGGAL_CATATAN' in df.columns: 
             df['TANGGAL_CATATAN'] = pd.to_datetime(df['TANGGAL_CATATAN'], errors='coerce')
         elif 'TANGGAL' in df.columns: 
@@ -66,6 +70,7 @@ def load_data(sheet_name):
             
         return df
     except Exception as e:
+        # st.error(f"Error saat memuat data dari GSheet {sheet_name}: {e}")
         # Jika sheet belum ada, 'conn.read' akan gagal, jadi kita kembalikan DataFrame kosong
         return pd.DataFrame()
 
@@ -81,7 +86,7 @@ def save_data(df, sheet_name):
         st.error(f"Error saat menyimpan data ke Google Sheets: {e}")
 
 # ===========================
-# Mapping Ceklist Harian Digital
+# Mapping Ceklist Harian Digital (Deskripsi + Rekomendasi)
 # ===========================
 ceklist_rules = {
     "Transmitter (Exciter & PA)": {
@@ -332,6 +337,7 @@ def apply_background_and_style():
     """Mengaplikasikan background image dan styling ke seluruh aplikasi."""
     background_image = "TVRI JAMBI.jpg"
 
+    # 'import os' masih digunakan di sini
     if os.path.exists(background_image):
         def get_base64_of_image(image_file):
             with open(image_file, "rb") as f:
@@ -339,10 +345,12 @@ def apply_background_and_style():
 
         bg_b64 = get_base64_of_image(background_image)
         
+        # Opacity lebih tinggi (lebih buram) saat belum login, lebih rendah saat sudah masuk.
         overlay_opacity = '0.15' if not st.session_state['logged_in'] else '0.25'
 
         css = f"""
         <style>
+        /* background image pada seluruh aplikasi */
         .stApp {{
             position: relative;
             min-height: 100vh;
@@ -351,6 +359,8 @@ def apply_background_and_style():
             background-position: center;
             background-attachment: fixed;
         }}
+
+        /* overlay putih semi-transparan agar teks hitam kontras */
         .stApp::before {{
             content: "";
             position: absolute;
@@ -359,11 +369,15 @@ def apply_background_and_style():
             z-index: 0;
             pointer-events: none;
         }}
+
+        /* Pastikan konten aplikasi berada di atas overlay */
         [data-testid="stAppViewContainer"] > .main {{
             position: relative;
             z-index: 1;
             color: #000 !important;
         }}
+
+        /* Semua teks dibuat tebal dan berwarna hitam */
         h1, h2, h3, h4, h5, h6,
         p, span, label, div, a, strong, em,
         .stMarkdown, .stExpander, .stButton, .stMetric {{
@@ -371,18 +385,25 @@ def apply_background_and_style():
             font-weight: 700 !important;
             text-shadow: none !important;
         }}
+
+        /* Pastikan widget input & label terlihat */
         .stTextInput, .stNumberInput, .stSelectbox, .stDateInput, .stTextArea {{
             color: #000 !important;
             font-weight: 700 !important;
         }}
+        
+        /* 🔑 CSS KHUSUS UNTUK FORM LOGIN (agar di tengah dan kecil) */
+        /* Hanya form dengan ID 'Login' yang akan terpengaruh */
         .stApp form[data-testid="stForm"]#Login-target {{
             padding: 2rem;
             border: 2px solid #ccc;
             border-radius: 10px;
-            background-color: rgba(255, 255, 255, 0.95);
-            max-width: 400px;
-            margin: 100px auto;
+            background-color: rgba(255, 255, 255, 0.95); /* Box semi-transparan putih */
+            max-width: 400px; /* Batasi lebar hanya untuk form login */
+            margin: 100px auto; /* Pusatkan form login */
         }}
+        
+        /* Tombol utama tetap terlihat (sesuaikan bila perlu) */
         .stButton > button {{
             background-color: #0057B8 !important;
             color: white !important;
@@ -390,34 +411,54 @@ def apply_background_and_style():
             border-radius: 8px !important;
             width: 100%;
         }}
+
+        /* Tombol di aplikasi utama/sidebar menggunakan lebar default streamlit (tidak full-width) */
+        /* Override width: 100% untuk tombol yang bukan di form login */
         .stApp [data-testid="stForm"] .stButton > button,
         .stApp [data-testid="stSidebar"] .stButton > button,
-        .stApp .stButton > button {{
+        .stApp .stButton > button {{ /* Perluas scope ke semua st.button */
             width: auto !important;
             min-width: 100px;
         }}
+        
+        /* Sidebar tetap putih dan diatas overlay */
         [data-testid="stSidebar"] > div:first-child {{
             background: rgba(255,255,255,0.95) !important;
             color: #000 !important;
             position: relative;
             z-index: 2;
         }}
+
+        /* Table / dataframe teks */
         .stDataFrame div {{
             color: #000 !important;
             font-weight: 700 !important;
         }}
+        
+        /* ======================================= */
+        /* CSS KHUSUS UNTUK COLORING CEKLIST HARIAN (Background Selected Pill) */
+        /* PEWARNAAN KHUSUS UNTUK NORMAL/WARNING/TROUBLE DIHAPUS SESUAI PERMINTAAN USER */
+        /* ======================================= */
+        
+        /* Teks default (saat tidak dipilih) tetap hitam seperti styling global, 
+           dan font tetap tebal */
         [data-testid="stRadio"] label div {{
             color: #000 !important; 
             font-weight: 700 !important; 
         }}
+        
+        /* Mengatur agar saat dipilih, latar belakangnya menggunakan warna netral Streamlit default, 
+           dan teks tetap hitam */
         [data-testid="stRadio"] input:checked + div {{
-            background-color: rgba(0, 87, 184, 0.2) !important;
-            color: #000 !important;
+            background-color: rgba(0, 87, 184, 0.2) !important; /* Default light blue/neutral */
+            color: #000 !important; /* Pastikan teks tetap hitam */
         }}
+        
         </style>
         """
         st.markdown(css, unsafe_allow_html=True)
     else:
+        # Jika gambar tidak ditemukan, biarkan background default
         st.error(f"Gambar latar 'TVRI JAMBI.jpg' tidak ditemukan. Pastikan file berada di folder yang sama.")
 
 # ===========================
@@ -425,12 +466,16 @@ def apply_background_and_style():
 # ===========================
 def login_form():
     """Menampilkan form login sederhana."""
+    # Panggil style di sini agar CSS login aktif
     apply_background_and_style() 
 
+    # Layout di tengah
     st.markdown("<div style='text-align: center;'><h1>📡 Login Monitoring MUX TVRI Jambi</h1></div>", unsafe_allow_html=True)
     
+    # Form login. Pastikan ID form ini sesuai dengan selector CSS: "Login-target"
     with st.form("Login"):
         st.subheader("Masukkan Username dan Password")
+        # Masukkan div agar input form login tetap terlihat di atas background (jika ada)
         st.markdown("<div id='login-container'>", unsafe_allow_html=True) 
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
@@ -438,13 +483,14 @@ def login_form():
         st.markdown("</div>", unsafe_allow_html=True) 
 
         if login_button:
+            # Autentikasi: Username dan Password "admin"
             if username == "admin" and password == "admin":
                 st.session_state['logged_in'] = True
-                st.rerun() 
+                st.rerun() # Refresh untuk menampilkan aplikasi utama
             else:
                 st.error("❌ Username atau Password salah!")
                 
-    st.stop()
+    st.stop() # Hentikan eksekusi di sini jika belum login
 
 # ===========================
 # Fungsi Halaman Aplikasi (Pengganti Tab 1)
@@ -454,8 +500,8 @@ def show_input_kalkulator():
     
     st.subheader("🧮 Kalkulator VSWR")
     colk1, colk2 = st.columns(2)
-    calc_power = colk1.number_input("Power Output (Watt)", min_value=0.0, step=1.0, key="calc_power")
-    calc_reflected = colk2.number_input("Reflected (Watt)", min_value=0.0, step=1.0, key="calc_reflected")
+    calc_power = colk1.number_input("Power Output (Watt)", min_value=0, step=1, key="calc_power")
+    calc_reflected = colk2.number_input("Reflected (Watt)", min_value=0, step=1, key="calc_reflected")
 
     if st.button("🔢 Hitung VSWR"):
         vswr_calc = hitung_vswr(calc_power, calc_reflected)
@@ -516,83 +562,112 @@ def show_input_kalkulator():
     with st.form("form_metering"):
         st.subheader("📝 Input Data Harian")
         
+        # --- Input Tanggal dan Waktu (Lebar Penuh) ---
         col1_form, col2_form = st.columns(2)
         tanggal = col1_form.date_input("Tanggal")
         waktu_options = ["02:00", "06:00", "10:00", "14:00", "18:00", "22:00"]
         waktu = col2_form.selectbox("Waktu", waktu_options)
 
-        power_output = st.number_input("Power Output (Watt)", min_value=0.0, step=1.0)
+        # --- Input Parameter Utama (Lebar penuh) ---
+        power_output = st.number_input("Power Output (Watt)", min_value=0, step=1)
         vswr_input = st.number_input("VSWR", min_value=1.0, step=0.01, format="%.2f")
         cn = st.number_input("C/N (dB)", min_value=1.0, step=0.01, format="%.2f")
         margin = st.number_input("Margin (dB)", min_value=1.0, step=0.01, format="%.2f")
 
+        # --- Input Tegangan Listrik (3 kolom) ---
         col3, col4, col5 = st.columns(3)
-        teg_r = col3.number_input("Phase R", step=1.0, key="teg_r")
-        teg_s = col4.number_input("Phase S", step=1.0, key="teg_s")
-        teg_t = col5.number_input("Phase T", step=1.0, key="teg_t")
+        teg_r = col3.number_input("Phase R", step=1, key="teg_r")
+        teg_s = col4.number_input("Phase S", step=1, key="teg_s")
+        teg_t = col5.number_input("Phase T", step=1, key="teg_t")
 
         suhu_tx = st.number_input("Suhu TX (°C)", min_value=1.0, step=0.01, format="%.2f")
 
+        # --- Input TV & Bitrate (Menggunakan 2 kolom Sama Rata) ---
         st.subheader("Status Channel TV & Bitrate")
         
+        # Group 1: NET TV
         st.markdown("#### NET TV")
         col_net_ok, col_net_bitrate = st.columns(2)
         net_tv = col_net_ok.selectbox("Status NET TV", ["OK", "NO"], key="net_tv_ok")
         bitrate_net = col_net_bitrate.number_input("Bitrate NET TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="net_tv_bitrate")
         
+        # Group 2: RTV
         st.markdown("#### RTV")
         col_rtv_ok, col_rtv_bitrate = st.columns(2)
         rtv = col_rtv_ok.selectbox("Status RTV", ["OK", "NO"], key="rtv_ok")
         bitrate_rtv = col_rtv_bitrate.number_input("Bitrate RTV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="rtv_bitrate")
         
+        
+        # Group 3: JAMBI TV
         st.markdown("#### JAMBI TV")
         col_jambi_ok, col_jambi_bitrate = st.columns(2)
         jambi_tv = col_jambi_ok.selectbox("Status JAMBI TV", ["OK", "NO"], key="jambi_tv_ok")
         bitrate_jambi = col_jambi_bitrate.number_input("Bitrate JAMBI TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="jambi_tv_bitrate")
         
+        
+        # Group 4: JEK TV
         st.markdown("#### JEK TV")
         col_jek_ok, col_jek_bitrate = st.columns(2)
         jek_tv = col_jek_ok.selectbox("Status JEK TV", ["OK", "NO"], key="jek_tv_ok")
         bitrate_jek = col_jek_bitrate.number_input("Bitrate JEK TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="jek_tv_bitrate")
         
+        
+        # Group 5: SINPO TV
         st.markdown("#### SINPO TV")
         col_sinpo_ok, col_sinpo_bitrate = st.columns(2)
         sinpo_tv = col_sinpo_ok.selectbox("Status SINPO TV", ["OK", "NO"], key="sinpo_tv_ok")
         bitrate_sinpo = col_sinpo_bitrate.number_input("Bitrate SINPO TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="sinpo_tv_bitrate")
         
+        
+        # Group 6: TVRI NASIONAL
         st.markdown("#### TVRI NASIONAL")
         col_tvri_nasional_ok, col_tvri_nasional_bitrate = st.columns(2)
         tvri_nasional = col_tvri_nasional_ok.selectbox("Status TVRI NASIONAL", ["OK", "NO"], key="tvri_nasional_ok")
         bitrate_tvri_nasional = col_tvri_nasional_bitrate.number_input("Bitrate TVRI NASIONAL (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_nasional_bitrate")
         
+        
+        # Group 7: TVRI WORLD
         st.markdown("#### TVRI WORLD")
         col_tvri_world_ok, col_tvri_world_bitrate = st.columns(2)
         tvri_world = col_tvri_world_ok.selectbox("Status TVRI WORLD", ["OK", "NO"], key="tvri_world_ok")
         bitrate_tvri_world = col_tvri_world_bitrate.number_input("Bitrate TVRI WORLD (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_world_bitrate")
         
+        
+        # Group 8: TVRI SPORT
         st.markdown("#### TVRI SPORT")
         col_tvri_sport_ok, col_tvri_sport_bitrate = st.columns(2)
         tvri_sport = col_tvri_sport_ok.selectbox("Status TVRI SPORT", ["OK", "NO"], key="tvri_sport_ok")
         bitrate_tvri_sport = col_tvri_sport_bitrate.number_input("Bitrate TVRI SPORT (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_sport_bitrate")
         
+        
+        # Group 9: TVRI JAMBI
         st.markdown("#### TVRI JAMBI")
         col_tvri_jambi_ok, col_tvri_jambi_bitrate = st.columns(2)
         tvri_jambi = col_tvri_jambi_ok.selectbox("Status TVRI JAMBI", ["OK", "NO"], key="tvri_jambi_ok")
         bitrate_tvri_jambi = col_tvri_jambi_bitrate.number_input("Bitrate TVRI JAMBI (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_jambi_bitrate")
         
+
+        # --- Kualitas A/V, Operator, Catatan (Lebar Penuh) ---
         kualitas_av = st.selectbox("Kualitas Audio / Video", ["A/V OK", "A/V NO"])
         operator = st.text_input("Operator")
         
+        # 📝 CATATAN
         catatan = st.text_area(
-            "Catatan/Keterangan",
+            "Catatan/Keterangan",  # Label
             placeholder="Isi catatan seperti 'Perbaiki ini', 'Semua normal', dll.", 
             height=100
         )
+        # -----------------------
 
+        # 🔘 Tombol aksi
         lihat_rekom = st.form_submit_button("🔍 Lihat Rekomendasi")
         simpan_data = st.form_submit_button("✅ Simpan Data") 
 
+    # ======================
+    # ANALISIS OTOMATIS
+    # ======================
     if lihat_rekom or simpan_data:
+        # 🔹 Analisa otomatis parameter
         data_analisis = []
         data_analisis.append(["Power Output (Watt)", power_output, *cek_param("Power Output (Watt)", power_output)])
         data_analisis.append(["VSWR", vswr_input, *cek_param("VSWR", vswr_input)])
@@ -608,6 +683,9 @@ def show_input_kalkulator():
         st.subheader("📊 Analisa & Rekomendasi Maintenance")
         st.dataframe(df_rekom, use_container_width=True)
 
+        # ======================
+        # SIMPAN DATA JIKA DIPILIH
+        # ======================
         if simpan_data:
             data_input = {
                 "TANGGAL": pd.to_datetime(tanggal).strftime("%Y-%m-%d"),
@@ -634,26 +712,35 @@ def show_input_kalkulator():
                 "CATATAN/KETERANGAN": catatan, 
             }
 
+            # Menggunakan load_data untuk data metering (sheet default)
+            # Ini sekarang akan memuat dari Google Sheets
             df_existing = load_data(data_sheet) 
             
+            # --- Logika untuk memastikan tipe data TANGGAL konsisten ---
+            # Saat memuat dari GSheet, TANGGAL mungkin string, pastikan datetime
             if not df_existing.empty and 'TANGGAL' in df_existing.columns:
                  df_existing['TANGGAL'] = pd.to_datetime(df_existing['TANGGAL'], errors='coerce')
 
             df_new = pd.DataFrame([data_input])
-            df_new['TANGGAL'] = pd.to_datetime(df_new['TANGGAL']) 
+            df_new['TANGGAL'] = pd.to_datetime(df_new['TANGGAL']) # Pastikan TANGGAL di data baru juga datetime
 
             if df_existing.empty:
                 df_all = df_new
             else:
+                # Logika Duplikat (Sama seperti kode asli Anda, ini bagus)
+                # Tambahkan konversi tipe data untuk WAKTU jika perlu, tapi astype(str) harusnya aman
                 df_existing['DUP_CHECK'] = df_existing['TANGGAL'].dt.strftime('%Y-%m-%d') + '_' + df_existing['WAKTU'].astype(str)
                 df_new['DUP_CHECK'] = df_new['TANGGAL'].dt.strftime('%Y-%m-%d') + '_' + df_new['WAKTU'].astype(str)
                 
                 df_existing_filtered = df_existing[~df_existing['DUP_CHECK'].isin(df_new['DUP_CHECK'])]
                 df_all = pd.concat([df_existing_filtered.drop(columns=['DUP_CHECK'], errors='ignore'), df_new.drop(columns=['DUP_CHECK'], errors='ignore')], ignore_index=True)
 
+            # --- Pastikan TANGGAL disimpan sebagai STRING format YYYY-MM-DD ---
+            # Google Sheets paling baik menyimpan tanggal sebagai string murni
             if 'TANGGAL' in df_all.columns:
                  df_all['TANGGAL'] = pd.to_datetime(df_all['TANGGAL']).dt.strftime('%Y-%m-%d')
 
+            # Menyimpan data metering ke Google Sheet (mengganti semua data di 'Sheet1')
             try:
                 save_data(df_all, data_sheet)
                 st.success(f"✅ Data berhasil ditambahkan ke Google Sheet **{data_sheet}**!")
@@ -666,22 +753,27 @@ def show_input_kalkulator():
 def show_visualisasi_data():
     st.title("📊 Visualisasi Data")
     
+    # PERBAIKAN: Gunakan fungsi load_data() yang sudah dimodifikasi
     df = load_data(data_sheet) 
     
+    # Jika DataFrame kosong, berikan info dan lanjut
     if df.empty:
         st.info("⚠️ Belum ada data. Silakan input dulu di menu **Input Data & Kalkulator**.")
-        return 
+        return # Hentikan eksekusi jika data kosong
     
     try:
+        # Format datetime (Logika ini tetap sama)
         df["TANGGAL"] = pd.to_datetime(df["TANGGAL"])
         df["DATETIME"] = pd.to_datetime(df["TANGGAL"].astype(str) + " " + df["WAKTU"].astype(str), errors="coerce")
         df = df.dropna(subset=["DATETIME"]).sort_values("DATETIME")
         
+        # Inisialisasi df_group sebagai DataFrame kosong
         df_group = pd.DataFrame()
 
         st.subheader("Grafik Tren Parameter")
         opsi_agregasi = st.radio("Pilih Periode Visualisasi:", ["Harian", "Bulan"], horizontal=True) 
 
+        # Filter sesuai opsi (Logika ini tetap sama)
         if opsi_agregasi == "Harian":
             if not df.empty:
                 max_date_data = df["TANGGAL"].max().date()
@@ -698,7 +790,7 @@ def show_visualisasi_data():
             else:
                 st.info("Tidak ada data untuk ditampilkan.")
 
-        else:
+        else:  # Rentang Tanggal
             st.write("Pilih rentang tanggal untuk visualisasi.")
             
             if not df.empty:
@@ -734,6 +826,7 @@ def show_visualisasi_data():
             else:
                 st.info("Tidak ada data untuk ditampilkan.")
 
+        # 🔹 Parameter (Logika ini tetap sama)
         parameter = st.multiselect(
             "Pilih Parameter untuk Ditampilkan:",
             ["POWER OUTPUT (WATT)", "VSWR", "C/N (dB)", "MARGIN (dB)",
@@ -758,7 +851,7 @@ def show_visualisasi_data():
                     ax.set_xticklabels(df_group["DATETIME"].dt.strftime("%H:%M"), rotation=45)
                 ax.set_xlabel("Jam")
 
-            else:
+            else:  # Rentang Tanggal
                 for col in parameter:
                     ax.plot(df_group["DATETIME"], df_group[col], marker="o", label=col)
                 ax.set_xlabel("Tanggal dan Waktu")
@@ -773,10 +866,14 @@ def show_visualisasi_data():
         elif parameter and df_group.empty:
             st.warning("⚠️ Tidak ada data untuk rentang yang dipilih.")
         
+        # ===========================
+        # Data Tersimpan + Pilihan Tampilan
+        # ===========================
         st.subheader("📑 Data Tersimpan (Metering)")
 
         df_display = df.sort_values(by="DATETIME", ascending=False).drop(columns=['DATETIME'], errors='ignore').copy()
 
+        # Format TANGGAL kembali ke string YYYY-MM-DD untuk tampilan bersih
         if 'TANGGAL' in df_display.columns:
             df_display['TANGGAL'] = df_display['TANGGAL'].dt.strftime('%Y-%m-%d')
 
@@ -791,6 +888,9 @@ def show_visualisasi_data():
         else:
             st.dataframe(df_display, use_container_width=True)
 
+        # ===========================
+        # Download Data (Filter per Rentang Tanggal)
+        # ===========================
         st.subheader("📥 Download Data (Metering)")
         st.write("Pilih rentang tanggal untuk data yang ingin diunduh.")
 
@@ -826,12 +926,14 @@ def show_visualisasi_data():
             
             df_download = df[(df["DATETIME"] >= start_datetime_dl) & (df["DATETIME"] < end_datetime_exclusive_dl)].copy()
 
+        # Drop kolom DATETIME dan format TANGGAL sebelum download
         df_download = df_download.drop(columns=['DATETIME'], errors='ignore')
         if 'TANGGAL' in df_download.columns:
             df_download['TANGGAL'] = df_download['TANGGAL'].dt.strftime('%Y-%m-%d')
 
         if not df_download.empty:
             buffer = BytesIO()
+            # 'openpyxl' digunakan di sini
             df_download.to_excel(buffer, index=False) 
             buffer.seek(0)
 
@@ -846,6 +948,7 @@ def show_visualisasi_data():
 
 
     except Exception as e:
+        # st.error(f"Error saat memuat atau memproses data metering: {e}")
         st.info("⚠️ Belum ada data. Silakan input dulu di menu **Input Data & Kalkulator**.")
 
 # ===========================
@@ -858,6 +961,7 @@ def show_ceklist_harian():
     
     HOUR_OPTIONS = ['Shift 1: 00.00 - 08.00', 'Shift 2: 08:00 - 16.00', 'Shift 3: 16:00-00.00']
 
+    # --- Definisikan Kolom Final untuk Konsistensi Data ---
     FINAL_COLUMNS = [
         "TANGGAL_CEKLIST",
         "JAM_CEKLIST",
@@ -867,6 +971,7 @@ def show_ceklist_harian():
         FINAL_COLUMNS.append(f"{param}_KONDISI")
         FINAL_COLUMNS.append(f"{param}_REKOMENDASI")
 
+    # --- INPUT HEADER (Date, Jam, Operator) ---
     st.subheader("Informasi Catatan")
     col_date, col_hour, col_op = st.columns([1, 1, 1])
     
@@ -881,6 +986,7 @@ def show_ceklist_harian():
         
     st.markdown("---")
     
+    # --- CHECKLIST ITEMS (OUTSIDE FORM FOR INSTANT UPDATE) ---
     st.subheader("Pilihan Kondisi Perangkat")
     
     hasil_ceklist = {}
@@ -910,16 +1016,19 @@ def show_ceklist_harian():
             "Rekomendasi": rekomendasi
         }
 
+    # --- ACTION BUTTONS (Standard Buttons for Logic) ---
     col_rekom, col_simpan = st.columns(2)
     
     lihat_rekom = col_rekom.button("📋 Tampilkan Rekomendasi")
     simpan_catatan = col_simpan.button("💾 Simpan Catatan Harian")
 
+    # --- Tampilkan Rekomendasi (Opsional) ---
     if lihat_rekom:
         st.subheader("🛠️ Rekomendasi Maintenance")
         for p, data in hasil_ceklist.items():
             st.markdown(f"**{p} ({data['Kondisi']}):** {data['Rekomendasi']}")
 
+    # --- Simpan Data ke Excel Sheet Catatan ---
     if simpan_catatan:
         data_simpan_horizontal = {
             "TANGGAL_CEKLIST": [pd.to_datetime(tanggal_catatan).strftime("%Y-%m-%d")],
@@ -937,8 +1046,10 @@ def show_ceklist_harian():
         df_new_notes = pd.DataFrame(data_simpan_horizontal)
         df_new_notes = df_new_notes.reindex(columns=FINAL_COLUMNS, fill_value=None)
         
+        # Load data catatan yang sudah ada (dari Google Sheets)
         df_existing_notes = load_data(notes_sheet)
         
+        # Pastikan TANGGAL_CEKLIST di data lama adalah string (jika ada)
         if not df_existing_notes.empty and 'TANGGAL_CEKLIST' in df_existing_notes.columns:
              df_existing_notes['TANGGAL_CEKLIST'] = pd.to_datetime(df_existing_notes['TANGGAL_CEKLIST'], errors='coerce').dt.strftime('%Y-%m-%d')
         
@@ -948,18 +1059,23 @@ def show_ceklist_harian():
         else:
              df_all_notes = df_new_notes
 
+        # Simpan DataFrame gabungan ke Google Sheet 'CATATAN_HARIAN'
         try:
             save_data(df_all_notes, notes_sheet)
             st.success(f"✅ Catatan harian berhasil disimpan ke Google Sheet **{notes_sheet}**!")
         except Exception as e:
             st.error(f"Gagal menyimpan catatan ke Google Sheets: {e}")
 
+    # ----------------------------------------------------
+    # --- Tampilkan Data Catatan Harian ---
+    # ----------------------------------------------------
     st.subheader("📑 Data Tersimpan (Catatan Harian)")
     df_notes_display = load_data(notes_sheet)
 
     if df_notes_display.empty:
         st.info("Belum ada catatan harian yang tersimpan.")
     else:
+        # Logika sorting (Tetap sama, ini bagus)
         if 'TANGGAL_CEKLIST' in df_notes_display.columns:
             df_notes_display['TANGGAL_CEKLIST'] = pd.to_datetime(df_notes_display['TANGGAL_CEKLIST'], errors='coerce')
         
@@ -978,12 +1094,14 @@ def show_ceklist_harian():
         
         st.dataframe(df_notes_display, use_container_width=True)
 
+    # --- Download Data Catatan Harian ---
     if not df_notes_display.empty:
         st.subheader("📥 Download Data (Catatan Harian)")
         buffer_notes = BytesIO()
         
         df_notes_download = df_notes_display.copy()
         
+        # 'openpyxl' digunakan di sini
         df_notes_download.to_excel(buffer_notes, index=False)
         buffer_notes.seek(0)
 
@@ -1010,6 +1128,7 @@ if st.session_state['logged_in']:
 
     st.markdown("<h1 style='text-align: center;'>📡 Monitoring Metering MUX Transmisi Telanaipura TVRI Stasiun Jambi</h1>", unsafe_allow_html=True)
     
+    # === SIDEBAR UNTUK NAVIGASI ===
     st.sidebar.title("Menu Utama")
     
     if 'current_page' not in st.session_state:
@@ -1026,15 +1145,15 @@ if st.session_state['logged_in']:
     
     st.session_state['current_page'] = page 
 
+    # === LOGOUT BUTTON ===
     if st.sidebar.button("🚪 Logout"):
         st.session_state['logged_in'] = False
         st.rerun()
 
+    # === KONTEN UTAMA ===
     if page == "📝 Input Data & Kalkulator":
         show_input_kalkulator()
     elif page == "📊 Visualisasi Data":
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
-
-}
