@@ -6,8 +6,6 @@ from io import BytesIO
 import datetime 
 import base64 # Diperlukan untuk background image
 
-conn = st.connection("gsheets", type="base")
-
 # ===========================
 # Konfigurasi Halaman (Landscape)
 # ===========================
@@ -33,7 +31,7 @@ notes_sheet = "CATATAN_HARIAN"
 # --- PERUBAHAN: Inisialisasi koneksi Google Sheets ---
 # Streamlit akan secara otomatis menggunakan [connections.gsheets] dari st.secrets
 # yang baru saja Anda konfigurasikan
-conn = st.connection("gsheets", type=GSheetsConnection)
+conn = st.connection("gsheets", type="base")
 
 # ===========================
 # Fungsi menghitung VSWR
@@ -1156,5 +1154,6 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
