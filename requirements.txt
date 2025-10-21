@@ -1,5 +1,5 @@
-streamlit==1.33.0
-pandas==2.1.4
-matplotlib==3.8.2
+streamlit
+pandas
+matplotlib
 openpyxl
-streamlit-gsheets-connection
+streamlit-gsheets-connector
