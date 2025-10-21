@@ -28,10 +28,7 @@ if 'logged_in' not in st.session_state:
 data_sheet = "Sheet1" # Sheet default untuk data metering (Sesuai dengan cara simpan di show_input_kalkulator)
 notes_sheet = "CATATAN_HARIAN" 
 
-# --- PERUBAHAN: Inisialisasi koneksi Google Sheets ---
-# Streamlit akan secara otomatis menggunakan [connections.gsheets] dari st.secrets
-# yang baru saja Anda konfigurasikan
-conn = st.connection("gsheets", type="base")
+conn = st.connection("gsheets")
 
 # ===========================
 # Fungsi menghitung VSWR
@@ -1154,6 +1151,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
