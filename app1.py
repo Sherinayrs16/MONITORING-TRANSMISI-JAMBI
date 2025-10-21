@@ -578,6 +578,11 @@ def show_input_kalkulator():
             {"min": 21, "max": 25.9, "status": "Warning", "rekom": "Cek pendingin, bersihkan filter AC"},
             {"min": 26, "max": 100, "status": "Trouble", "rekom": "Segera servis AC / tambah pendingin"}
         ]
+    }
+    # ==================================================
+    # RULES BITRATE KANAL TV
+    # ==================================================
+    rules_bitrate = {
         "Bitrate NET TV (Mbps)": [
             {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke NET TV pusat untuk konfirmasi uplink. Tidak dilakukan tindakan lokal sebelum instruksi diterima. Catat waktu dan durasi bitrate 0 Mbps."},
             {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate pada encoder dan transcoder NET TV. Jika fluktuasi >10–15 menit, catat waktu kejadian dan laporkan ke NET TV pusat."},
@@ -622,7 +627,8 @@ def show_input_kalkulator():
             {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps, cek setting encoder dan koneksi ke MUX. Jika belum normal, restart IRD. Bila tetap 0 Mbps, koordinasikan dengan TVRI pusat."},
             {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau encoder lokal & jalur IP ke MUX. Jika bitrate turun tanpa sebab, cek jaringan dan laporkan ke pusat."},
             {"min": 3.5, "max": 20.0, "status": "Normal", "rekom": "Normal, encoder lokal dan MUX berfungsi baik. Tidak perlu tindakan."}
-        ]
+        ],
+    }
     
     def cek_param(nama, nilai):
         for rule in rules_param[nama]:
@@ -1176,6 +1182,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
