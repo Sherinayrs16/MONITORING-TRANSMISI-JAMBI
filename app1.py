@@ -29,16 +29,32 @@ if 'logged_in' not in st.session_state:
 data_sheet = "Sheet1" # Sheet default untuk data metering (Sesuai dengan cara simpan di show_input_kalkulator)
 notes_sheet = "CATATAN_HARIAN" 
 
+# --- DEFINISI FUNGSI get_data (WAJIB DI ATAS PANGGILANNYA) ---
+@st.cache_data(ttl=600)
+def get_data(client, sheet_id, worksheet_name):
+    try:
+        ss = client.open_by_key(sheet_id)
+        ws = ss.worksheet(worksheet_name)
+        
+        # Baca semua data sebagai records (list of dicts) dan konversi ke DataFrame
+        df = pd.DataFrame(ws.get_all_records())
+        return df
+    except Exception as e:
+        st.error(f"Gagal mengambil data dari Google Sheets. Pastikan 'spreadsheet_id' dan nama sheet benar. Error: {e}")
+        return pd.DataFrame()
+
+# ===========================
+# INISIALISASI GSPREAD CLIENT
+# ===========================
+
+# Fungsi untuk mendapatkan client gspread yang terotorisasi
 def get_gspread_client():
-    # Ambil seluruh secrets untuk koneksi gsheets (yaitu [connections.gsheets])
     secrets = st.secrets["connections"]["gsheets"]
-    
-    # Kumpulkan semua data JSON dari secrets
     gcp_credentials = {
         "type": "service_account",
         "project_id": secrets["project_id"],
         "private_key_id": secrets["private_key_id"],
-        # KUNCI UTAMA: Mengganti '\n' dari string secrets ke karakter newline (\n) sebenarnya
+        # PENTING: Mengganti '\n' dari string secrets ke karakter newline (\n) sebenarnya
         "private_key": secrets["private_key"].replace("\\n", "\n").strip(), 
         "client_email": secrets["client_email"],
         "client_id": secrets["client_id"],
@@ -48,15 +64,12 @@ def get_gspread_client():
         "client_x509_cert_url": secrets["client_x509_cert_url"],
         "universe_domain": secrets["universe_domain"],
     }
-    
-    # Otorisasi gspread client
     client = gspread.service_account_from_dict(gcp_credentials)
     return client
-
-# Inisialisasi client
+    
+# Panggil fungsi inisialisasi client
 gs_client = get_gspread_client()
 spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet_id"]
-
 df = get_data(gs_client, spreadsheet_id, data_sheet)
 
 # ===========================
@@ -1180,6 +1193,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
