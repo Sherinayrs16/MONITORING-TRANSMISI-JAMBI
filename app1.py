@@ -194,8 +194,8 @@ ceklist_rules = {
             "rekom": "Restart MUX, cek port input/output"
         },
         "Trouble": {
-            "deskripsi": "Input tidak terbaca sama sekali",
-            "rekom": "Servis MUX, cek perangkat keras & software"
+            "deskripsi": "Input tidak terbaca sama sekali, ada indikator lampu merah menyala",
+            "rekom": "Servis MUX, cek perangkat keras & software, cek kabel inputan, IRD dan encoder"
         }
     },
     "Parabola + LNB": {
@@ -1123,3 +1123,4 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
