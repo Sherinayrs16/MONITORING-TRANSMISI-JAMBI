@@ -579,7 +579,52 @@ def show_input_kalkulator():
             {"min": 26, "max": 100, "status": "Trouble", "rekom": "Segera servis AC / tambah pendingin"}
         ]
     }
-
+        "Bitrate NET TV (Mbps)": [
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke NET TV pusat untuk konfirmasi uplink. Tidak dilakukan tindakan lokal sebelum instruksi diterima. Catat waktu dan durasi bitrate 0 Mbps."},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate pada encoder dan transcoder NET TV. Jika fluktuasi >10–15 menit, catat waktu kejadian dan laporkan ke NET TV pusat."},
+            {"min": 1.5, "max": 20.0, "status": "Normal", "rekom": "Tidak ada tindakan, bitrate stabil sesuai kontrak 2 Mbps. Tetap pantau kestabilan."}
+        ],
+        "Bitrate RTV (Mbps)": [
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Laporkan ke RTV pusat untuk pengecekan uplink dan sumber siaran. Tunda tindakan restart lokal sampai ada arahan resmi."},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau bitrate dari IRD RTV dan trafik jaringan MUX. Jika penurunan berulang, catat polanya dan informasikan ke RTV pusat."},
+            {"min": 3.5, "max": 20.0, "status": "Normal", "rekom": "Tidak ada tindakan, stream baik dan sinkron. Pastikan tetap di atas 3.5 Mbps."}
+        ],
+        "Bitrate JAMBI TV (Mbps)": [
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke Jambi TV pusat terkait penurunan bitrate. Tunggu konfirmasi sebelum tindakan teknis. Catat waktu & parameter jaringan."},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau output encoder Jambi TV dan koneksi IP ke MUX. Jika fluktuatif, laporkan ke pusat untuk pemeriksaan encoder."},
+            {"min": 1.5, "max": 20.0, "status": "Normal", "rekom": "Tidak ada tindakan, encoder dan link aman. Pantau rutin setiap 1 jam."}
+        ],
+        "Bitrate JEK TV (Mbps)": [
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Koordinasikan dengan JEK TV pusat untuk validasi uplink. Tidak dilakukan intervensi tanpa konfirmasi mitra. Simpan log bitrate drop."},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate dari receiver JEK TV. Jika hanya kanal ini turun, kemungkinan sumber siaran bermasalah."},
+            {"min": 1.5, "max": 20.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu maintenance. Lanjutkan pemantauan harian."}
+        ],
+        "Bitrate SINPO TV (Mbps)": [
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke SINPO TV pusat untuk pengecekan uplink. Pastikan koneksi MUX aktif, tanpa restart sebelum instruksi mitra."},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau fluktuasi bitrate dari STB SINPO TV. Jika tidak kembali normal dalam 10–15 menit, hubungi teknisi SINPO."},
+            {"min": 1.5, "max": 20.0, "status": "Normal", "rekom": "Kondisi normal. Pastikan koneksi IP stabil dan tidak ada packet loss."}
+        ],
+        "Bitrate TVRI NASIONAL (Mbps)": [
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps atau siaran hilang, cek IRD Harmonic dan opsi Encrypt. Jika tetap hilang, koordinasikan dengan TVRI pusat."},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau encoder pusat/uplink. Jika penurunan bersamaan dengan kanal lain, kemungkinan bandwidth IP pusat tidak stabil."},
+            {"min": 3.5, "max": 20.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu tindakan. Pastikan encoder pusat tetap aktif."}
+        ],
+        "Bitrate TVRI WORLD (Mbps)": [
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps/tidak muncul encrypt, cek IRD Harmonic dan koneksi IP. Hubungi TVRI pusat jika tetap tidak muncul."},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate dan uplink pusat. Jika hanya kanal ini turun, kemungkinan encoder pusat overload."},
+            {"min": 3.5, "max": 20.0, "status": "Normal", "rekom": "Tidak ada masalah, jalur aman. Pantau jika ada event internasional besar."}
+        ],
+        "Bitrate TVRI SPORT (Mbps)": [
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps: (1) Cabut-pasang kartu decrypt IRD Ericsson. (2) Jika belum normal, aktifkan Decrypt & Decode. Jika tetap gagal, hubungi TVRI pusat."},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau bitrate terutama saat live. Bitrate bisa turun karena penyesuaian bandwidth dinamis. Catat jika >10 menit."},
+            {"min": 3.5, "max": 20.0, "status": "Normal", "rekom": "Kondisi baik, stream lancar. Tetap pantau bitrate saat live event."}
+        ],
+        "Bitrate TVRI JAMBI (Mbps)": [
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps, cek setting encoder dan koneksi ke MUX. Jika belum normal, restart IRD. Bila tetap 0 Mbps, koordinasikan dengan TVRI pusat."},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau encoder lokal & jalur IP ke MUX. Jika bitrate turun tanpa sebab, cek jaringan dan laporkan ke pusat."},
+            {"min": 3.5, "max": 20.0, "status": "Normal", "rekom": "Normal, encoder lokal dan MUX berfungsi baik. Tidak perlu tindakan."}
+        ]
+    
     def cek_param(nama, nilai):
         for rule in rules_param[nama]:
             if rule["min"] <= nilai <= rule["max"]:
@@ -681,7 +726,16 @@ def show_input_kalkulator():
         data_analisis.append(["Tegangan S (Volt)", teg_s, *cek_param("Tegangan Listrik (Volt)", teg_s)])
         data_analisis.append(["Tegangan T (Volt)", teg_t, *cek_param("Tegangan Listrik (Volt)", teg_t)])
         data_analisis.append(["Suhu TX (°C)", suhu_tx, *cek_param("Suhu TX (°C)", suhu_tx)])
-
+        # --- Memanggil cek_param dengan key spesifik per channel ---
+        data_analisis.append(["Bitrate NET TV (Mbps)", bitrate_net, *cek_param("Bitrate NET TV (Mbps)", bitrate_net)])
+        data_analisis.append(["Bitrate RTV (Mbps)", bitrate_rtv, *cek_param("Bitrate RTV (Mbps)", bitrate_rtv)])
+        data_analisis.append(["Bitrate JAMBI TV (Mbps)", bitrate_jambi, *cek_param("Bitrate JAMBI TV (Mbps)", bitrate_jambi)])
+        data_analisis.append(["Bitrate JEK TV (Mbps)", bitrate_jek, *cek_param("Bitrate JEK TV (Mbps)", bitrate_jek)])
+        data_analisis.append(["Bitrate SINPO TV (Mbps)", bitrate_sinpo, *cek_param("Bitrate SINPO TV (Mbps)", bitrate_sinpo)])
+        data_analisis.append(["Bitrate TVRI NASIONAL (Mbps)", bitrate_tvri_nasional, *cek_param("Bitrate TVRI NASIONAL (Mbps)", bitrate_tvri_nasional)])
+        data_analisis.append(["Bitrate TVRI WORLD (Mbps)", bitrate_tvri_world, *cek_param("Bitrate TVRI WORLD (Mbps)", bitrate_tvri_world)])
+        data_analisis.append(["Bitrate TVRI SPORT (Mbps)", bitrate_tvri_sport, *cek_param("Bitrate TVRI SPORT (Mbps)", bitrate_tvri_sport)])
+        data_analisis.append(["Bitrate TVRI JAMBI (Mbps)", bitrate_tvri_jambi, *cek_param("Bitrate TVRI JAMBI (Mbps)", bitrate_tvri_jambi)])
         df_rekom = pd.DataFrame(data_analisis, columns=["Parameter", "Nilai Input", "Status", "Rekomendasi"])
 
         st.subheader("📊 Analisa & Rekomendasi Maintenance")
@@ -1123,4 +1177,5 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
