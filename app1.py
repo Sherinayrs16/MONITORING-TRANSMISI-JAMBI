@@ -6,10 +6,7 @@ from io import BytesIO
 import datetime 
 import base64 # Diperlukan untuk background image
 
-# --- PERUBAHAN: Import GSheetsConnection ---
-from streamlit_gsheets import GSheetsConnection 
-# ...
-conn = st.connection("gsheets", type=GSheetsConnection)
+conn = st.connection("gsheets", type="base")
 
 # ===========================
 # Konfigurasi Halaman (Landscape)
@@ -1159,4 +1156,5 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
