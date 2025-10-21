@@ -578,7 +578,6 @@ def show_input_kalkulator():
             {"min": 21, "max": 25.9, "status": "Warning", "rekom": "Cek pendingin, bersihkan filter AC"},
             {"min": 26, "max": 100, "status": "Trouble", "rekom": "Segera servis AC / tambah pendingin"}
         ]
-    }
         "Bitrate NET TV (Mbps)": [
             {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke NET TV pusat untuk konfirmasi uplink. Tidak dilakukan tindakan lokal sebelum instruksi diterima. Catat waktu dan durasi bitrate 0 Mbps."},
             {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate pada encoder dan transcoder NET TV. Jika fluktuasi >10–15 menit, catat waktu kejadian dan laporkan ke NET TV pusat."},
@@ -1177,5 +1176,6 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
