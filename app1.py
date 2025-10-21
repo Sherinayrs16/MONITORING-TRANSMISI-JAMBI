@@ -6,6 +6,9 @@ from io import BytesIO
 import datetime 
 import base64 # Diperlukan untuk background image
 
+# --- PERUBAHAN: Import GSheetsConnection ---
+from streamlit_gsheets import GSheetsConnection
+
 # ===========================
 # Konfigurasi Halaman (Landscape)
 # ===========================
@@ -21,9 +24,17 @@ if 'logged_in' not in st.session_state:
 
 # ===========================
 # Nama file Excel & Sheet Catatan
+# *Pastikan nama sheet metering konsisten: 'Sheet1'*
 # ===========================
-data_file = "metering_mux.xlsx"
+# --- PERUBAHAN: Hapus data_file, ini sekarang diatur di st.secrets ---
+# data_file = "metering_mux.xlsx" 
+data_sheet = "Sheet1" # Sheet default untuk data metering (Sesuai dengan cara simpan di show_input_kalkulator)
 notes_sheet = "CATATAN_HARIAN" 
+
+# --- PERUBAHAN: Inisialisasi koneksi Google Sheets ---
+# Streamlit akan secara otomatis menggunakan [connections.gsheets] dari st.secrets
+# yang baru saja Anda konfigurasikan
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ===========================
 # Fungsi menghitung VSWR
@@ -37,63 +48,42 @@ def hitung_vswr(power_output, reflected):
     return round((1 + gamma) / (1 - gamma), 2)
 
 # ===========================
-# Fungsi untuk Load Data 
+# Fungsi untuk Load Data (MODIFIKASI)
 # ===========================
-@st.cache_data(ttl=600) # FIX 1: Tambahkan caching untuk konsistensi di deployment
 def load_data(sheet_name):
-    """Memuat data dari file Excel, sheet tertentu. Membuat DataFrame kosong jika error."""
-    if os.path.exists(data_file):
-        try:
-            # Menggunakan pd.ExcelFile untuk mengecek ketersediaan sheet
-            xls = pd.ExcelFile(data_file)
-            if sheet_name in xls.sheet_names:
-                df = pd.read_excel(xls, sheet_name=sheet_name)
-                # Pastikan kolom tanggal berupa datetime
-                if 'TANGGAL_CATATAN' in df.columns: # Menggunakan nama kolom yang spesifik untuk sheet catatan
-                    df['TANGGAL_CATATAN'] = pd.to_datetime(df['TANGGAL_CATATAN'], errors='coerce')
-                elif 'TANGGAL' in df.columns: # Untuk sheet data metering
-                    df['TANGGAL'] = pd.to_datetime(df['TANGGAL'], errors='coerce')
-                elif 'TANGGAL_CEKLIST' in df.columns: # Untuk sheet ceklist harian
-                    df['TANGGAL_CEKLIST'] = pd.to_datetime(df['TANGGAL_CEKLIST'], errors='coerce')
-                    
-                return df.dropna(how='all') # Hapus baris kosong
-            else:
-                return pd.DataFrame() # Jika sheet belum ada
-        except Exception as e:
-            # st.error(f"Error saat memuat data dari sheet {sheet_name}: {e}")
-            return pd.DataFrame() # Kembalikan DataFrame kosong jika ada error
-    return pd.DataFrame()
+    """Memuat data dari Google Sheet, sheet tertentu. Membuat DataFrame kosong jika error."""
+    try:
+        # Baca data dari Google Sheet menggunakan koneksi yang sudah dibuat
+        # ttl=60 -> Cache data selama 60 detik untuk mengurangi panggilan API
+        df = conn.read(sheet=sheet_name, ttl=60)
+        
+        # Hapus baris yang semua kolomnya kosong (sering terjadi di GSheets)
+        df = df.dropna(how='all') 
+        
+        # Pastikan kolom tanggal berupa datetime (Logika dari kode asli dipertahankan)
+        if 'TANGGAL_CATATAN' in df.columns: 
+            df['TANGGAL_CATATAN'] = pd.to_datetime(df['TANGGAL_CATATAN'], errors='coerce')
+        elif 'TANGGAL' in df.columns: 
+            df['TANGGAL'] = pd.to_datetime(df['TANGGAL'], errors='coerce')
+        elif 'TANGGAL_CEKLIST' in df.columns: 
+            df['TANGGAL_CEKLIST'] = pd.to_datetime(df['TANGGAL_CEKLIST'], errors='coerce')
+            
+        return df
+    except Exception as e:
+        # st.error(f"Error saat memuat data dari GSheet {sheet_name}: {e}")
+        # Jika sheet belum ada, 'conn.read' akan gagal, jadi kita kembalikan DataFrame kosong
+        return pd.DataFrame()
 
 # ===========================
-# Fungsi untuk Save Data 
+# Fungsi untuk Save Data (MODIFIKASI)
 # ===========================
 def save_data(df, sheet_name):
-    """Menyimpan DataFrame ke sheet tertentu dalam file Excel."""
-    
-    # Hapus cache lama agar data yang baru tersimpan langsung terlihat setelah save
-    if 'load_data' in globals():
-        load_data.clear()
-        
+    """Menyimpan (mengganti) DataFrame ke sheet tertentu dalam Google Sheet."""
     try:
-        # Muat semua sheet yang ada, kecuali sheet yang akan diupdate
-        sheets_data = {}
-        if os.path.exists(data_file):
-            xls = pd.ExcelFile(data_file)
-            for name in xls.sheet_names:
-                if name != sheet_name:
-                    sheets_data[name] = pd.read_excel(xls, sheet_name=name)
-
-        # Gunakan ExcelWriter untuk menyimpan/memperbarui
-        with pd.ExcelWriter(data_file, engine='openpyxl') as writer:
-            # Simpan data yang sedang diupdate
-            df.to_excel(writer, sheet_name=sheet_name, index=False)
-            
-            # Simpan kembali data sheet lain yang tidak diupdate
-            for name, existing_df in sheets_data.items():
-                existing_df.to_excel(writer, sheet_name=name, index=False)
-                
+        # 'conn.update' akan MENGGANTI seluruh isi sheet dengan DataFrame baru (df)
+        conn.update(sheet=sheet_name, data=df)
     except Exception as e:
-        st.error(f"Error saat menyimpan data ke Excel: {e}")
+        st.error(f"Error saat menyimpan data ke Google Sheets: {e}")
 
 # ===========================
 # Mapping Ceklist Harian Digital (Deskripsi + Rekomendasi)
@@ -347,6 +337,7 @@ def apply_background_and_style():
     """Mengaplikasikan background image dan styling ke seluruh aplikasi."""
     background_image = "TVRI JAMBI.jpg"
 
+    # 'import os' masih digunakan di sini
     if os.path.exists(background_image):
         def get_base64_of_image(image_file):
             with open(image_file, "rb") as f:
@@ -722,25 +713,39 @@ def show_input_kalkulator():
             }
 
             # Menggunakan load_data untuk data metering (sheet default)
-            df_existing = load_data('Sheet1') 
+            # Ini sekarang akan memuat dari Google Sheets
+            df_existing = load_data(data_sheet) 
+            
+            # --- Logika untuk memastikan tipe data TANGGAL konsisten ---
+            # Saat memuat dari GSheet, TANGGAL mungkin string, pastikan datetime
+            if not df_existing.empty and 'TANGGAL' in df_existing.columns:
+                 df_existing['TANGGAL'] = pd.to_datetime(df_existing['TANGGAL'], errors='coerce')
+
+            df_new = pd.DataFrame([data_input])
+            df_new['TANGGAL'] = pd.to_datetime(df_new['TANGGAL']) # Pastikan TANGGAL di data baru juga datetime
+
             if df_existing.empty:
-                df_all = pd.DataFrame([data_input])
+                df_all = df_new
             else:
-                # Cek apakah ada baris duplikat (tanggal + waktu) sebelum concat
-                df_new = pd.DataFrame([data_input])
-                df_existing['DUP_CHECK'] = df_existing['TANGGAL'].astype(str) + '_' + df_existing['WAKTU'].astype(str)
-                df_new['DUP_CHECK'] = df_new['TANGGAL'].astype(str) + '_' + df_new['WAKTU'].astype(str)
+                # Logika Duplikat (Sama seperti kode asli Anda, ini bagus)
+                # Tambahkan konversi tipe data untuk WAKTU jika perlu, tapi astype(str) harusnya aman
+                df_existing['DUP_CHECK'] = df_existing['TANGGAL'].dt.strftime('%Y-%m-%d') + '_' + df_existing['WAKTU'].astype(str)
+                df_new['DUP_CHECK'] = df_new['TANGGAL'].dt.strftime('%Y-%m-%d') + '_' + df_new['WAKTU'].astype(str)
                 
-                # Filter data yang sudah ada yang tidak sama dengan data baru
                 df_existing_filtered = df_existing[~df_existing['DUP_CHECK'].isin(df_new['DUP_CHECK'])]
                 df_all = pd.concat([df_existing_filtered.drop(columns=['DUP_CHECK'], errors='ignore'), df_new.drop(columns=['DUP_CHECK'], errors='ignore')], ignore_index=True)
 
-            # Menyimpan data metering ke sheet pertama (default: Sheet1)
+            # --- Pastikan TANGGAL disimpan sebagai STRING format YYYY-MM-DD ---
+            # Google Sheets paling baik menyimpan tanggal sebagai string murni
+            if 'TANGGAL' in df_all.columns:
+                 df_all['TANGGAL'] = pd.to_datetime(df_all['TANGGAL']).dt.strftime('%Y-%m-%d')
+
+            # Menyimpan data metering ke Google Sheet (mengganti semua data di 'Sheet1')
             try:
-                save_data(df_all, 'Sheet1')
-                st.success("✅ Data berhasil ditambahkan ke Metering!")
+                save_data(df_all, data_sheet)
+                st.success(f"✅ Data berhasil ditambahkan ke Google Sheet **{data_sheet}**!")
             except Exception as e:
-                st.error(f"Gagal menyimpan data ke Excel: {e}")
+                st.error(f"Gagal menyimpan data ke Google Sheets: {e}")
 
 # ===========================
 # Fungsi Halaman Visualisasi (Pengganti Tab 2)
@@ -748,183 +753,206 @@ def show_input_kalkulator():
 def show_visualisasi_data():
     st.title("📊 Visualisasi Data")
     
-    # FIX 2: Ganti pembacaan file langsung dengan fungsi load_data yang sudah di-cache
-    df = load_data('Sheet1') 
+    # PERBAIKAN: Gunakan fungsi load_data() yang sudah dimodifikasi
+    df = load_data(data_sheet) 
     
-    # Jika DataFrame kosong, berikan info dan hentikan eksekusi
+    # Jika DataFrame kosong, berikan info dan lanjut
     if df.empty:
-        st.info("⚠️ Belum ada data. Silakan input dulu di menu Input Data & Kalkulator.")
-        return # Tambahkan return agar kode visualisasi di bawah tidak dieksekusi
-
-    # Lanjutkan ke pemrosesan data dan visualisasi
+        st.info("⚠️ Belum ada data. Silakan input dulu di menu **Input Data & Kalkulator**.")
+        return # Hentikan eksekusi jika data kosong
     
-    # Format datetime
-    df["TANGGAL"] = pd.to_datetime(df["TANGGAL"])
-    df["DATETIME"] = pd.to_datetime(df["TANGGAL"].astype(str) + " " + df["WAKTU"].astype(str), errors="coerce")
-    df = df.dropna(subset=["DATETIME"]).sort_values("DATETIME")
-    
-    # Inisialisasi df_group sebagai DataFrame kosong
-    df_group = pd.DataFrame()
-
-    st.subheader("Grafik Tren Parameter")
-    opsi_agregasi = st.radio("Pilih Periode Visualisasi:", ["Harian", "Bulan"], horizontal=True) 
-
-    # Filter sesuai opsi
-    if opsi_agregasi == "Harian":
-        if not df.empty:
-            default_date = df["TANGGAL"].max().date() if not df.empty else datetime.date.today()
-            pilih_tanggal = st.date_input("Pilih Tanggal", value=default_date, max_value=df["TANGGAL"].max().date())
-            df_group = df[df["TANGGAL"].dt.date == pilih_tanggal]
-        else:
-            st.info("Tidak ada data untuk ditampilkan.")
-
-    else:  # Rentang Tanggal
-        st.write("Pilih rentang tanggal untuk visualisasi.")
+    try:
+        # Format datetime (Logika ini tetap sama)
+        df["TANGGAL"] = pd.to_datetime(df["TANGGAL"])
+        df["DATETIME"] = pd.to_datetime(df["TANGGAL"].astype(str) + " " + df["WAKTU"].astype(str), errors="coerce")
+        df = df.dropna(subset=["DATETIME"]).sort_values("DATETIME")
         
-        if not df.empty:
-            min_date = df["TANGGAL"].min().date()
-            max_date = df["TANGGAL"].max().date()
+        # Inisialisasi df_group sebagai DataFrame kosong
+        df_group = pd.DataFrame()
 
-            col_start, col_end = st.columns(2)
-            
-            start_date = col_start.date_input(
-                "Tanggal Awal (Start Date)", 
-                value=min_date, 
-                min_value=min_date, 
-                max_value=max_date,
-                key="viz_start_date" 
-            )
-            
-            end_date = col_end.date_input(
-                "Tanggal Akhir (End Date)", 
-                value=max_date,
-                min_value=min_date,
-                max_value=max_date,
-                key="viz_end_date" 
-            )
+        st.subheader("Grafik Tren Parameter")
+        opsi_agregasi = st.radio("Pilih Periode Visualisasi:", ["Harian", "Bulan"], horizontal=True) 
 
-            # Logika filter rentang tanggal
-            if start_date > end_date:
-                st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir.")
-                df_group = pd.DataFrame() 
-            else:
-                start_datetime = pd.to_datetime(start_date)
-                end_datetime_exclusive = pd.to_datetime(end_date) + pd.Timedelta(days=1)
-                
-                df_group = df[(df["DATETIME"] >= start_datetime) & (df["DATETIME"] < end_datetime_exclusive)].copy()
-        else:
-            st.info("Tidak ada data untuk ditampilkan.")
-
-    # 🔹 Parameter
-    parameter = st.multiselect(
-        "Pilih Parameter untuk Ditampilkan:",
-        ["POWER OUTPUT (WATT)", "VSWR", "C/N (dB)", "MARGIN (dB)",
-         "TEGANGAN LISTRIK R (Volt)", "TEGANGAN LISTRIK S (Volt)",
-         "TEGANGAN LISTRIK T (Volt)", "SUHU TX"],
-        default=["POWER OUTPUT (WATT)", "VSWR"]
-    )
-
-    if parameter and not df_group.empty:
-        fig, ax = plt.subplots(figsize=(12, 5))
-
+        # Filter sesuai opsi (Logika ini tetap sama)
         if opsi_agregasi == "Harian":
-            for col in parameter:
-                ax.scatter(df_group["DATETIME"], df_group[col], label=col)
-            if len(df_group["DATETIME"]) > 0:
-                ax.set_xticks(df_group["DATETIME"])
-                ax.set_xticklabels(df_group["DATETIME"].dt.strftime("%H:%M"), rotation=45)
-            ax.set_xlabel("Jam")
+            if not df.empty:
+                max_date_data = df["TANGGAL"].max().date()
+                default_date = max_date_data if not df.empty else datetime.date.today()
+                
+                pilih_tanggal = st.date_input(
+                    "Pilih Tanggal", 
+                    value=default_date, 
+                    min_value=df["TANGGAL"].min().date(),
+                    max_value=max_date_data
+                )
+                
+                df_group = df[df["TANGGAL"].dt.date == pilih_tanggal]
+            else:
+                st.info("Tidak ada data untuk ditampilkan.")
 
         else:  # Rentang Tanggal
-            for col in parameter:
-                ax.plot(df_group["DATETIME"], df_group[col], marker="o", label=col)
-            ax.set_xlabel("Tanggal dan Waktu")
+            st.write("Pilih rentang tanggal untuk visualisasi.")
+            
+            if not df.empty:
+                min_date = df["TANGGAL"].min().date()
+                max_date = df["TANGGAL"].max().date()
 
-        ax.set_ylabel("Nilai")
-        ax.set_title(f"Grafik Parameter Transmisi ({opsi_agregasi})")
-        ax.legend()
-        ax.grid(True)
-        plt.tight_layout()
-        st.pyplot(fig)
+                col_start, col_end = st.columns(2)
+                
+                start_date = col_start.date_input(
+                    "Tanggal Awal (Start Date)", 
+                    value=min_date, 
+                    min_value=min_date, 
+                    max_value=max_date,
+                    key="viz_start_date" 
+                )
+                
+                end_date = col_end.date_input(
+                    "Tanggal Akhir (End Date)", 
+                    value=max_date,
+                    min_value=min_date,
+                    max_value=max_date,
+                    key="viz_end_date" 
+                )
 
-    elif parameter and df_group.empty:
-        st.warning("⚠️ Tidak ada data untuk rentang yang dipilih.")
-    
-    # ===========================
-    # Data Tersimpan + Pilihan Tampilan
-    # ===========================
-    st.subheader("📑 Data Tersimpan (Metering)")
+                if start_date > end_date:
+                    st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir.")
+                    df_group = pd.DataFrame() 
+                else:
+                    start_datetime = pd.to_datetime(start_date)
+                    end_datetime_exclusive = pd.to_datetime(end_date) + pd.Timedelta(days=1)
+                    
+                    df_group = df[(df["DATETIME"] >= start_datetime) & (df["DATETIME"] < end_datetime_exclusive)].copy()
+            else:
+                st.info("Tidak ada data untuk ditampilkan.")
 
-    opsi_tampilan = st.selectbox("Tampilkan berapa baris terakhir?", ["5", "10", "100", "Semua"], index=0)
-
-    if opsi_tampilan == "5":
-        st.dataframe(df.tail(5), use_container_width=True)
-    elif opsi_tampilan == "10":
-        st.dataframe(df.tail(10), use_container_width=True)
-    elif opsi_tampilan == "100":
-        st.dataframe(df.tail(100), use_container_width=True)
-    else:
-        st.dataframe(df, use_container_width=True)
-
-    # ===========================
-    # Download Data (Filter per Rentang Tanggal)
-    # ===========================
-    st.subheader("📥 Download Data (Metering)")
-    st.write("Pilih rentang tanggal untuk data yang ingin diunduh.")
-
-    min_date_dl = df["TANGGAL"].min().date()
-    max_date_dl = df["TANGGAL"].max().date()
-
-    col_start_dl, col_end_dl = st.columns(2)
-
-    start_date_dl = col_start_dl.date_input(
-        "Tanggal Awal Download", 
-        value=min_date_dl, 
-        min_value=min_date_dl, 
-        max_value=max_date_dl,
-        key="dl_start_date"
-    )
-
-    end_date_dl = col_end_dl.date_input(
-        "Tanggal Akhir Download", 
-        value=max_date_dl,
-        min_value=min_date_dl,
-        max_value=max_date_dl,
-        key="dl_end_date"
-    )
-    
-    df_download = df.copy()
-
-    if start_date_dl > end_date_dl:
-        st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir untuk proses download.")
-        df_download = pd.DataFrame() 
-    else:
-        start_datetime_dl = pd.to_datetime(start_date_dl)
-        end_datetime_exclusive_dl = pd.to_datetime(end_date_dl) + pd.Timedelta(days=1)
-        
-        df_download = df[(df["DATETIME"] >= start_datetime_dl) & (df["DATETIME"] < end_datetime_exclusive_dl)].copy()
-
-    # Drop kolom DATETIME sebelum download
-    df_download = df_download.drop(columns=['DATETIME'], errors='ignore')
-
-    if not df_download.empty:
-        buffer = BytesIO()
-        df_download.to_excel(buffer, index=False)
-        buffer.seek(0)
-
-        st.download_button(
-            label="⬇️ Download Data (Excel)",
-            data=buffer,
-            file_name=f"metering_{start_date_dl}_to_{end_date_dl}.xlsx", 
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        # 🔹 Parameter (Logika ini tetap sama)
+        parameter = st.multiselect(
+            "Pilih Parameter untuk Ditampilkan:",
+            ["POWER OUTPUT (WATT)", "VSWR", "C/N (dB)", "MARGIN (dB)",
+                "TEGANGAN LISTRIK R (Volt)", "TEGANGAN LISTRIK S (Volt)",
+                "TEGANGAN LISTRIK T (Volt)", "SUHU TX"],
+            default=["POWER OUTPUT (WATT)", "VSWR"]
         )
-    else:
-        st.warning("Pilih rentang tanggal yang valid atau pastikan ada data dalam rentang tersebut untuk mengunduh.")
 
+        if parameter and not df_group.empty:
+            fig, ax = plt.subplots(figsize=(12, 5))
+
+            if opsi_agregasi == "Harian":
+                if len(df_group) <= 1:
+                     for col in parameter:
+                        ax.plot(df_group["DATETIME"], df_group[col], 'o-', label=col)
+                else:
+                    for col in parameter:
+                        ax.plot(df_group["DATETIME"], df_group[col], 'o-', label=col)
+                
+                if len(df_group["DATETIME"]) > 0:
+                    ax.set_xticks(df_group["DATETIME"])
+                    ax.set_xticklabels(df_group["DATETIME"].dt.strftime("%H:%M"), rotation=45)
+                ax.set_xlabel("Jam")
+
+            else:  # Rentang Tanggal
+                for col in parameter:
+                    ax.plot(df_group["DATETIME"], df_group[col], marker="o", label=col)
+                ax.set_xlabel("Tanggal dan Waktu")
+
+            ax.set_ylabel("Nilai")
+            ax.set_title(f"Grafik Parameter Transmisi ({opsi_agregasi})")
+            ax.legend()
+            ax.grid(True)
+            plt.tight_layout()
+            st.pyplot(fig)
+
+        elif parameter and df_group.empty:
+            st.warning("⚠️ Tidak ada data untuk rentang yang dipilih.")
+        
+        # ===========================
+        # Data Tersimpan + Pilihan Tampilan
+        # ===========================
+        st.subheader("📑 Data Tersimpan (Metering)")
+
+        df_display = df.sort_values(by="DATETIME", ascending=False).drop(columns=['DATETIME'], errors='ignore').copy()
+
+        # Format TANGGAL kembali ke string YYYY-MM-DD untuk tampilan bersih
+        if 'TANGGAL' in df_display.columns:
+            df_display['TANGGAL'] = df_display['TANGGAL'].dt.strftime('%Y-%m-%d')
+
+        opsi_tampilan = st.selectbox("Tampilkan berapa baris terakhir?", ["5", "10", "100", "Semua"], index=0)
+
+        if opsi_tampilan == "5":
+            st.dataframe(df_display.head(5), use_container_width=True)
+        elif opsi_tampilan == "10":
+            st.dataframe(df_display.head(10), use_container_width=True)
+        elif opsi_tampilan == "100":
+            st.dataframe(df_display.head(100), use_container_width=True)
+        else:
+            st.dataframe(df_display, use_container_width=True)
+
+        # ===========================
+        # Download Data (Filter per Rentang Tanggal)
+        # ===========================
+        st.subheader("📥 Download Data (Metering)")
+        st.write("Pilih rentang tanggal untuk data yang ingin diunduh.")
+
+        min_date_dl = df["TANGGAL"].min().date()
+        max_date_dl = df["TANGGAL"].max().date()
+
+        col_start_dl, col_end_dl = st.columns(2)
+
+        start_date_dl = col_start_dl.date_input(
+            "Tanggal Awal Download", 
+            value=min_date_dl, 
+            min_value=min_date_dl, 
+            max_value=max_date_dl,
+            key="dl_start_date"
+        )
+
+        end_date_dl = col_end_dl.date_input(
+            "Tanggal Akhir Download", 
+            value=max_date_dl,
+            min_value=min_date_dl,
+            max_value=max_date_dl,
+            key="dl_end_date"
+        )
+        
+        df_download = df.copy()
+
+        if start_date_dl > end_date_dl:
+            st.error("Tanggal Awal tidak boleh setelah Tanggal Akhir untuk proses download.")
+            df_download = pd.DataFrame() 
+        else:
+            start_datetime_dl = pd.to_datetime(start_date_dl)
+            end_datetime_exclusive_dl = pd.to_datetime(end_date_dl) + pd.Timedelta(days=1)
+            
+            df_download = df[(df["DATETIME"] >= start_datetime_dl) & (df["DATETIME"] < end_datetime_exclusive_dl)].copy()
+
+        # Drop kolom DATETIME dan format TANGGAL sebelum download
+        df_download = df_download.drop(columns=['DATETIME'], errors='ignore')
+        if 'TANGGAL' in df_download.columns:
+            df_download['TANGGAL'] = df_download['TANGGAL'].dt.strftime('%Y-%m-%d')
+
+        if not df_download.empty:
+            buffer = BytesIO()
+            # 'openpyxl' digunakan di sini
+            df_download.to_excel(buffer, index=False) 
+            buffer.seek(0)
+
+            st.download_button(
+                label="⬇️ Download Data (Excel)",
+                data=buffer,
+                file_name=f"metering_{start_date_dl}_to_{end_date_dl}.xlsx", 
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        else:
+            st.warning("Pilih rentang tanggal yang valid atau pastikan ada data dalam rentang tersebut untuk mengunduh.")
+
+
+    except Exception as e:
+        # st.error(f"Error saat memuat atau memproses data metering: {e}")
+        st.info("⚠️ Belum ada data. Silakan input dulu di menu **Input Data & Kalkulator**.")
 
 # ===========================
 # Fungsi Halaman Ceklist (Pengganti Tab 3)
-# *PERUBAHAN: MENGHAPUS FUNGSI PEWARNAAN STATUS DAN MERAPATKAN JARAK*
 # ===========================
 
 def show_ceklist_harian():
@@ -964,41 +992,33 @@ def show_ceklist_harian():
     hasil_ceklist = {}
     
     for param, kondisi in ceklist_rules.items():
-        # Teks parameter dibuat menonjol
         st.markdown(f"**{param}**")
         
-        # Inisialisasi default state (penting untuk st.radio di luar form)
         if f"ceklist_{param}" not in st.session_state:
             st.session_state[f"ceklist_{param}"] = "Normal"
             
-        # Widget st.radio akan me-rerun script saat diubah
         pilihan = st.radio(
             f"Kondisi {param}", 
             ["Normal", "Warning", "Trouble"], 
             horizontal=True, 
-            key=f"ceklist_{param}", # Key menyimpan state di session_state
+            key=f"ceklist_{param}", 
             label_visibility="collapsed"
         )
         
-        # Tampilkan deskripsi kondisi langsung tanpa warna
         deskripsi = kondisi[pilihan]['deskripsi']
         rekomendasi = kondisi[pilihan]['rekom']
         
-        # Menggunakan st.markdown dengan teks tebal (hitam)
         st.markdown(f"**📌 {deskripsi}**")
         
-        # simpan hasil lengkap ke hasil_ceklist (menggunakan nilai yang baru dari widget)
         hasil_ceklist[param] = {
             "Kondisi": pilihan,
             "Deskripsi": deskripsi,
             "Rekomendasi": rekomendasi
         }
-        # st.markdown("---") # Garis pemisah dihapus untuk merapatkan jarak
 
     # --- ACTION BUTTONS (Standard Buttons for Logic) ---
     col_rekom, col_simpan = st.columns(2)
     
-    # Tombol Aksi - Tidak menggunakan st.form_submit_button lagi
     lihat_rekom = col_rekom.button("📋 Tampilkan Rekomendasi")
     simpan_catatan = col_simpan.button("💾 Simpan Catatan Harian")
 
@@ -1006,19 +1026,16 @@ def show_ceklist_harian():
     if lihat_rekom:
         st.subheader("🛠️ Rekomendasi Maintenance")
         for p, data in hasil_ceklist.items():
-            # Tampilkan rekomendasi tanpa warna
             st.markdown(f"**{p} ({data['Kondisi']}):** {data['Rekomendasi']}")
 
     # --- Simpan Data ke Excel Sheet Catatan ---
     if simpan_catatan:
-        # Data dasar untuk 1 baris (Horizontal)
         data_simpan_horizontal = {
             "TANGGAL_CEKLIST": [pd.to_datetime(tanggal_catatan).strftime("%Y-%m-%d")],
             "JAM_CEKLIST": [jam_catatan],
             "OPERATOR_CEKLIST": [operator_catatan],
         }
         
-        # 1. PIVOT DATA: Konversi hasil ceklist menjadi kolom horizontal
         for param, data in hasil_ceklist.items():
             kondisi_key = f"{param}_KONDISI"
             rekom_key = f"{param}_REKOMENDASI"
@@ -1027,26 +1044,27 @@ def show_ceklist_harian():
             data_simpan_horizontal[rekom_key] = [data["Rekomendasi"]] 
 
         df_new_notes = pd.DataFrame(data_simpan_horizontal)
-        
-        # 2. Re-index kolom DataFrame baru agar sesuai dengan FINAL_COLUMNS
         df_new_notes = df_new_notes.reindex(columns=FINAL_COLUMNS, fill_value=None)
         
-        # Load data catatan yang sudah ada
+        # Load data catatan yang sudah ada (dari Google Sheets)
         df_existing_notes = load_data(notes_sheet)
         
-        # 3. GABUNGKAN
+        # Pastikan TANGGAL_CEKLIST di data lama adalah string (jika ada)
+        if not df_existing_notes.empty and 'TANGGAL_CEKLIST' in df_existing_notes.columns:
+             df_existing_notes['TANGGAL_CEKLIST'] = pd.to_datetime(df_existing_notes['TANGGAL_CEKLIST'], errors='coerce').dt.strftime('%Y-%m-%d')
+        
         if not df_existing_notes.empty:
              df_existing_notes = df_existing_notes.reindex(columns=FINAL_COLUMNS, fill_value=None)
              df_all_notes = pd.concat([df_existing_notes, df_new_notes], ignore_index=True)
         else:
              df_all_notes = df_new_notes
 
-        # Simpan DataFrame gabungan ke sheet CATATAN_HARIAN
+        # Simpan DataFrame gabungan ke Google Sheet 'CATATAN_HARIAN'
         try:
             save_data(df_all_notes, notes_sheet)
-            st.success(f"✅ Catatan harian berhasil disimpan ke sheet **{notes_sheet}**!")
+            st.success(f"✅ Catatan harian berhasil disimpan ke Google Sheet **{notes_sheet}**!")
         except Exception as e:
-            st.error(f"Gagal menyimpan catatan ke Excel: {e}")
+            st.error(f"Gagal menyimpan catatan ke Google Sheets: {e}")
 
     # ----------------------------------------------------
     # --- Tampilkan Data Catatan Harian ---
@@ -1057,28 +1075,23 @@ def show_ceklist_harian():
     if df_notes_display.empty:
         st.info("Belum ada catatan harian yang tersimpan.")
     else:
-        # Konversi TANGGAL_CEKLIST ke tipe datetime
+        # Logika sorting (Tetap sama, ini bagus)
         if 'TANGGAL_CEKLIST' in df_notes_display.columns:
             df_notes_display['TANGGAL_CEKLIST'] = pd.to_datetime(df_notes_display['TANGGAL_CEKLIST'], errors='coerce')
         
-        # Buat kolom gabungan TANGGAL_WAKTU untuk pengurutan
         if 'TANGGAL_CEKLIST' in df_notes_display.columns and 'JAM_CEKLIST' in df_notes_display.columns:
             
-            df_notes_display['TANGGAL_WAKTU'] = df_notes_display['TANGGAL_CEKLIST'].dt.strftime('%Y-%m-%d') + ' ' + df_notes_display['JAM_CEKLIST'].astype(str)
+            df_notes_display['TANGGAL_WAKTU'] = df_notes_display['TANGGAL_CEKLIST'].dt.strftime('%Y-%m-%d') + ' ' + df_notes_display['JAM_CEKLIST'].astype(str).str.split(':').str[0]
             df_notes_display['TANGGAL_WAKTU'] = pd.to_datetime(df_notes_display['TANGGAL_WAKTU'], errors='coerce')
             
-            # Urutkan berdasarkan TANGGAL_WAKTU terbaru
             df_notes_display = df_notes_display.sort_values(by='TANGGAL_WAKTU', ascending=False)
         
-        # Format ulang TANGGAL_CEKLIST 
         if 'TANGGAL_CEKLIST' in df_notes_display.columns:
             df_notes_display['TANGGAL_CEKLIST'] = df_notes_display['TANGGAL_CEKLIST'].dt.strftime('%Y-%m-%d')
         
-        # Drop kolom bantu (TANGGAL_WAKTU)
         cols_to_drop = ['TANGGAL_WAKTU'] 
         df_notes_display = df_notes_display.drop(columns=cols_to_drop, errors='ignore')
         
-        # Tampilkan DataFrame
         st.dataframe(df_notes_display, use_container_width=True)
 
     # --- Download Data Catatan Harian ---
@@ -1088,6 +1101,7 @@ def show_ceklist_harian():
         
         df_notes_download = df_notes_display.copy()
         
+        # 'openpyxl' digunakan di sini
         df_notes_download.to_excel(buffer_notes, index=False)
         buffer_notes.seek(0)
 
@@ -1110,22 +1124,18 @@ if not st.session_state['logged_in']:
 # ===========================
 if st.session_state['logged_in']:
     
-    # PERBAIKAN: Panggil style di sini agar background selalu ada di halaman utama
     apply_background_and_style() 
 
-    # Judul utama di konten aplikasi
     st.markdown("<h1 style='text-align: center;'>📡 Monitoring Metering MUX Transmisi Telanaipura TVRI Stasiun Jambi</h1>", unsafe_allow_html=True)
     
     # === SIDEBAR UNTUK NAVIGASI ===
     st.sidebar.title("Menu Utama")
     
-    # Default page selection
     if 'current_page' not in st.session_state:
         st.session_state['current_page'] = "📝 Input Data & Kalkulator"
         
     page_options = ["📝 Input Data & Kalkulator", "📊 Visualisasi Data", "✅ Ceklist Harian Digital"]
     
-    # Gunakan session state untuk mempertahankan pilihan
     page = st.sidebar.selectbox(
         "Pilih Halaman:",
         page_options,
@@ -1133,7 +1143,7 @@ if st.session_state['logged_in']:
         key='sidebar_page_select'
     )
     
-    st.session_state['current_page'] = page # Update session state
+    st.session_state['current_page'] = page 
 
     # === LOGOUT BUTTON ===
     if st.sidebar.button("🚪 Logout"):
