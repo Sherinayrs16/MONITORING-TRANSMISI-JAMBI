@@ -29,7 +29,35 @@ if 'logged_in' not in st.session_state:
 data_sheet = "Sheet1" # Sheet default untuk data metering (Sesuai dengan cara simpan di show_input_kalkulator)
 notes_sheet = "CATATAN_HARIAN" 
 
+def get_gspread_client():
+    # Ambil seluruh secrets untuk koneksi gsheets (yaitu [connections.gsheets])
+    secrets = st.secrets["connections"]["gsheets"]
+    
+    # Kumpulkan semua data JSON dari secrets
+    gcp_credentials = {
+        "type": "service_account",
+        "project_id": secrets["project_id"],
+        "private_key_id": secrets["private_key_id"],
+        # KUNCI UTAMA: Mengganti '\n' dari string secrets ke karakter newline (\n) sebenarnya
+        "private_key": secrets["private_key"].replace("\\n", "\n").strip(), 
+        "client_email": secrets["client_email"],
+        "client_id": secrets["client_id"],
+        "auth_uri": secrets["auth_uri"],
+        "token_uri": secrets["token_uri"],
+        "auth_provider_x509_cert_url": secrets["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": secrets["client_x509_cert_url"],
+        "universe_domain": secrets["universe_domain"],
+    }
+    
+    # Otorisasi gspread client
+    client = gspread.service_account_from_dict(gcp_credentials)
+    return client
 
+# Inisialisasi client
+gs_client = get_gspread_client()
+spreadsheet_id = st.secrets["connections"]["gsheets"]["spreadsheet_id"]
+
+df = get_data(gs_client, spreadsheet_id, data_sheet)
 
 # ===========================
 # Fungsi menghitung VSWR
@@ -1152,6 +1180,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
