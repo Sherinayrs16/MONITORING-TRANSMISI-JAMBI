@@ -1,6 +1,5 @@
-streamlit
-pandas
+streamlit==1.33.0
+pandas==2.2.0
+matplotlib==3.8.0
 openpyxl
-requests
-matplotlib
-streamlit-gsheets-connector
+streamlit-gsheets-connector==0.6.1
