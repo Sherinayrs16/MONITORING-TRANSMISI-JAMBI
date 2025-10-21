@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from io import BytesIO
 import datetime 
 import base64 # Diperlukan untuk background image
-
+from streamlit_gsheets import GSheetsConnection
 # ===========================
 # Konfigurasi Halaman (Landscape)
 # ===========================
@@ -28,7 +28,7 @@ if 'logged_in' not in st.session_state:
 data_sheet = "Sheet1" # Sheet default untuk data metering (Sesuai dengan cara simpan di show_input_kalkulator)
 notes_sheet = "CATATAN_HARIAN" 
 
-conn = st.connection("gsheets")
+conn = st.connection("gsheets", type=GSheetsConnection)
 
 # ===========================
 # Fungsi menghitung VSWR
@@ -1151,6 +1151,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
