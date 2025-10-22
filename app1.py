@@ -515,7 +515,7 @@ def login_form():
         st.markdown("</div>", unsafe_allow_html=True) 
 
         if login_button:
-            if username == "admin" and password == "admin":
+            if username == "admin" and password == "admin123":
                 st.session_state['logged_in'] = True
                 st.rerun()
             else:
@@ -1184,6 +1184,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
