@@ -601,7 +601,7 @@ def show_input_kalkulator():
         "Bitrate JEK TV (Mbps)": [
             {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke pihak JEK TV untuk pengecekan siaran. Tunda tindakan sampai ada arahan resmi. Atau pantau jadwal Sun Outage"},
             {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Cek converter JEK TV. Jika hanya kanal ini turun, laporkan ke pihak RTV."},
-            {"min": 1.5, "max": 20.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu maintenance. Lanjutkan pemantauan harian."}
+            {"min": 1.5, "max": 2.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu maintenance. Lanjutkan pemantauan harian."}
         ],
         "Bitrate SINPO TV (Mbps)": [
             {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke pihak SINPO TV . Tunda tindakan sampai ada arahan resmi. Atau pantau jadwal Sun Outage"},
@@ -614,13 +614,13 @@ def show_input_kalkulator():
             {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu tindakan."}
         ],
         "Bitrate TVRI WORLD (Mbps)": [
-            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps/tidak muncul encrypt, cek IRD Harmonic dan koneksi IP. Hubungi TVRI pusat jika tetap tidak muncul. Atau pantau jadwal Sun Outage"},
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps atau siaran hilang, cek IRD Harmonic dan lakukan Encrypt siaran. Jika tetap hilang, koordinasikan dengan TVRI pusat. Atau pantau jadwal Sun Outage"},
             {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau perubahan bitrate pada IRD, jika bitrate terus menurun dan tidak sesuai standar SLA maka lakukan pergantian perangkat."},
             {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Tidak ada masalah, jalur aman. Pantau jika ada event internasional besar."}
         ],
         "Bitrate TVRI SPORT (Mbps)": [
             {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps: (1) Cabut-pasang kartu encrypt IRD Ericsson. (2) Jika belum normal, pasang kabel LAN dari IRD ke pc lalu masuk ke sistem IRD menggunakan IP, lalu centang kolom Decrypt & Decode. Jika tetap gagal, hubungi TVRI pusat. Atau pantau jadwal Sun Outage"},
-            {"min": 2.0, "max": 3.0, "status": "Warning", "rekom": "Pantau perubahan bitrate pada IRD, jika bitrate terus menurun dan tidak sesuai standar SLA maka lakukan pergantian perangkat"},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau perubahan bitrate pada IRD, jika bitrate terus menurun dan tidak sesuai standar SLA maka lakukan pergantian perangkat"},
             {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Kondisi baik, stream lancar. Tetap pantau bitrate saat live event."}
         ],
         "Bitrate TVRI JAMBI (Mbps)": [
@@ -1184,6 +1184,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
