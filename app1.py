@@ -504,7 +504,7 @@ def login_form():
     """Menampilkan form login sederhana."""
     apply_background_and_style() 
 
-    st.markdown("<div style='text-align: center;'><h1>📡 Login Monitoring MUX TVRI Jambi</h1></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align: center;'><h1>📡 Login Monitoring Metering MUX TVRI Jambi</h1></div>", unsafe_allow_html=True)
     
     with st.form("Login"):
         st.subheader("Masukkan Username dan Password")
@@ -1184,6 +1184,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
