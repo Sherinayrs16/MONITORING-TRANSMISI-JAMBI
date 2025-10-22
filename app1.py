@@ -584,49 +584,49 @@ def show_input_kalkulator():
     # ==================================================
     rules_bitrate = {
         "Bitrate NET TV (Mbps)": [
-            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke NET TV pusat untuk konfirmasi. Tidak dilakukan tindakan lokal sebelum instruksi diterima. Catat waktu dan durasi bitrate 0 Mbps."},
-            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate pada transcoder NET TV. Jika fluktuasi >10–15 menit, catat waktu kejadian dan laporkan ke NET TV."},
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke pihak NET TV pusat untuk konfirmasi. Tidak dilakukan tindakan lokal sebelum instruksi diterima. Catat waktu dan durasi bitrate 0 Mbps."},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate pada transcoder NET TV. Jika fluktuasi >10–15 menit, catat waktu kejadian dan laporkan ke pihak NET TV."},
             {"min": 1.5, "max": 2.0, "status": "Normal", "rekom": "Tidak ada tindakan, bitrate stabil sesuai kontrak 2 Mbps. Tetap pantau kestabilan."}
         ],
         "Bitrate RTV (Mbps)": [
-            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Laporkan ke RTV untuk pengecekan siaran. Tunda tindakan restart lokal sampai ada arahan resmi."},
-            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau bitrate dari IRD RTV dan trafik jaringan MUX. Jika penurunan berulang, catat polanya dan informasikan ke RTV."},
-            {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Tidak ada tindakan, stream baik dan sinkron. Pastikan tetap di atas 3.5 Mbps."}
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Laporkan ke pihak RTV untuk pengecekan siaran. Tunda tindakan lokal sampai ada arahan resmi. Atau pantau jadwal Sun Outage"},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau bitrate dari encoder RTV. Jika penurunan berulang, catat polanya dan informasikan ke RTV."},
+            {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Tidak ada tindakan, bitrate stabil sesuai kontrak 4 Mbps. Tetap pantau kestabilan."}
         ],
         "Bitrate JAMBI TV (Mbps)": [
-            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke Jambi TV terkait penurunan bitrate. Tunggu konfirmasi sebelum tindakan teknis. Catat waktu & parameter jaringan."},
-            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau output encoder Jambi TV dan koneksi IP ke MUX. Jika fluktuatif, laporkan ke pusat untuk pemeriksaan encoder."},
-            {"min": 1.5, "max": 2.0, "status": "Normal", "rekom": "Tidak ada tindakan, encoder dan link aman. Pantau rutin setiap 1 jam."}
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke pihak Jambi TV terkait penurunan bitrate. Tunggu konfirmasi sebelum tindakan teknis. Catat waktu & parameter jaringan."},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau output encoder Jambi TV dan koneksi IP ke MUX. Jika fluktuatif, laporkan ke pihak Jambi TV."},
+            {"min": 1.5, "max": 2.0, "status": "Normal", "rekom": "Tidak ada tindakan, bitrate stabil sesuai kontrak 2 Mbps. Tetap pantau kestabilan"}
         ],
         "Bitrate JEK TV (Mbps)": [
-            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Koordinasikan dengan JEK TV untuk validasi uplink. Tidak dilakukan intervensi tanpa konfirmasi mitra. Simpan log bitrate drop."},
-            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate dari receiver JEK TV. Jika hanya kanal ini turun, kemungkinan sumber siaran bermasalah."},
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke pihak JEK TV untuk pengecekan siaran. Tunda tindakan sampai ada arahan resmi. Atau pantau jadwal Sun Outage"},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Cek converter JEK TV. Jika hanya kanal ini turun, laporkan ke pihak RTV."},
             {"min": 1.5, "max": 20.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu maintenance. Lanjutkan pemantauan harian."}
         ],
         "Bitrate SINPO TV (Mbps)": [
-            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke SINPO TV untuk pengecekan uplink. Pastikan koneksi MUX aktif, tanpa restart sebelum instruksi mitra."},
-            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau fluktuasi bitrate dari STB SINPO TV. Jika tidak kembali normal dalam 10–15 menit, hubungi teknisi SINPO."},
-            {"min": 1.5, "max": 2.0, "status": "Normal", "rekom": "Kondisi normal. Pastikan koneksi IP stabil dan tidak ada packet loss."}
+            {"min": 0, "max": 0.99, "status": "Trouble", "rekom": "Laporkan ke pihak SINPO TV . Tunda tindakan sampai ada arahan resmi. Atau pantau jadwal Sun Outage"},
+            {"min": 1.0, "max": 1.49, "status": "Warning", "rekom": "Pantau fluktuasi bitrate SINPO TV. Jika tidak kembali normal dalam 10–15 menit, hubungi pihak SINPO."},
+            {"min": 1.5, "max": 2.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu maintenance. Lanjutkan pemantauan harian"}
         ],
         "Bitrate TVRI NASIONAL (Mbps)": [
-            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps atau siaran hilang, cek IRD Harmonic dan opsi Encrypt. Jika tetap hilang, koordinasikan dengan TVRI pusat."},
-            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau encoder pusat/uplink. Jika penurunan bersamaan dengan kanal lain, kemungkinan bandwidth IP pusat tidak stabil."},
-            {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu tindakan. Pastikan encoder pusat tetap aktif."}
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps atau siaran hilang, cek IRD Harmonic dan lakukan Encrypt siaran. Jika tetap hilang, koordinasikan dengan TVRI pusat. Atau pantau jadwal Sun Outage"},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau perubahan bitrate pada IRD, jika bitrate terus menurun dan tidak sesuai standar SLA maka lakukan pergantian perangkat ."},
+            {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Bitrate stabil, tidak perlu tindakan."}
         ],
         "Bitrate TVRI WORLD (Mbps)": [
-            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps/tidak muncul encrypt, cek IRD Harmonic dan koneksi IP. Hubungi TVRI pusat jika tetap tidak muncul."},
-            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau kestabilan bitrate dan uplink pusat. Jika hanya kanal ini turun, kemungkinan encoder pusat overload."},
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps/tidak muncul encrypt, cek IRD Harmonic dan koneksi IP. Hubungi TVRI pusat jika tetap tidak muncul. Atau pantau jadwal Sun Outage"},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau perubahan bitrate pada IRD, jika bitrate terus menurun dan tidak sesuai standar SLA maka lakukan pergantian perangkat."},
             {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Tidak ada masalah, jalur aman. Pantau jika ada event internasional besar."}
         ],
         "Bitrate TVRI SPORT (Mbps)": [
-            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps: (1) Cabut-pasang kartu encrypt IRD Ericsson. (2) Jika belum normal, pasang kabel LAN dari IRD ke pc lalu masuk ke sistem IRD menggunakan IP, lalu centang kolom Decrypt & Decode. Jika tetap gagal, hubungi TVRI pusat."},
-            {"min": 2.0, "max": 3.0, "status": "Warning", "rekom": "Pantau bitrate terutama saat live. Bitrate bisa turun karena penyesuaian bandwidth dinamis. Catat jika >10 menit."},
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps: (1) Cabut-pasang kartu encrypt IRD Ericsson. (2) Jika belum normal, pasang kabel LAN dari IRD ke pc lalu masuk ke sistem IRD menggunakan IP, lalu centang kolom Decrypt & Decode. Jika tetap gagal, hubungi TVRI pusat. Atau pantau jadwal Sun Outage"},
+            {"min": 2.0, "max": 3.0, "status": "Warning", "rekom": "Pantau perubahan bitrate pada IRD, jika bitrate terus menurun dan tidak sesuai standar SLA maka lakukan pergantian perangkat"},
             {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Kondisi baik, stream lancar. Tetap pantau bitrate saat live event."}
         ],
         "Bitrate TVRI JAMBI (Mbps)": [
-            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps, cek setting encoder dan koneksi ke MUX. Jika belum normal, restart IRD. Bila tetap 0 Mbps, koordinasikan dengan TVRI pusat."},
-            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau encoder lokal & jalur IP ke MUX. Jika bitrate turun tanpa sebab, cek jaringan dan laporkan ke pusat."},
-            {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Normal, encoder lokal dan MUX berfungsi baik. Tidak perlu tindakan."}
+            {"min": 0, "max": 1.99, "status": "Trouble", "rekom": "Jika bitrate 0 Mbps, cek sistem encoder (lihat status inputan masing-masing port yaitu SDI, HDMI, & CVBS. Kalau status inputan merah berarti tidak ada inputan, selanjutnya ganti ke port yang status nya hijau. Jika menggunakan IRD, restart IRD"},
+            {"min": 2.0, "max": 3.49, "status": "Warning", "rekom": "Pantau perubahan bitrate pada encoder/IRD, jika bitrate terus menurun dan tidak sesuai standar SLA maka lakukan pergantian perangkat."},
+            {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Normal, encoder/IRD dan MUX berfungsi baik. Tidak perlu tindakan."}
         ],
     }
     # GABUNGKAN KEDUA DICTIONARY RULES MENJADI SATU
@@ -1184,6 +1184,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
