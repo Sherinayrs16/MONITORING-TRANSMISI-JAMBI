@@ -574,7 +574,8 @@ def show_input_kalkulator():
             {"min": 231, "max": 300, "status": "Trouble", "rekom": "Periksa suplai PLN/UPS, cek kabel distribusi, pakai genset jika darurat"}
         ],
         "Suhu TX (°C)": [
-            {"min": 17, "max": 20.9, "status": "Normal", "rekom": "Suhu normal"},
+            {"min": 0, "max": 15.9, "status": "Warning", "rekom": "Suhu terlalu dingin, pantau risiko embun atau lembap di peralatan, naikkan suhu ac/cooling system(pendingin ruangan)"},
+            {"min": 16, "max": 20.9, "status": "Normal", "rekom": "Suhu normal"},
             {"min": 21, "max": 25.9, "status": "Warning", "rekom": "Cek pendingin, bersihkan filter AC"},
             {"min": 26, "max": 100, "status": "Trouble", "rekom": "Segera servis AC / tambah pendingin"}
         ]
@@ -1184,6 +1185,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
