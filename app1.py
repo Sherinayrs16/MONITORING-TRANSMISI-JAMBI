@@ -629,6 +629,8 @@ def show_input_kalkulator():
             {"min": 3.5, "max": 4.0, "status": "Normal", "rekom": "Normal, encoder lokal dan MUX berfungsi baik. Tidak perlu tindakan."}
         ],
     }
+    # GABUNGKAN KEDUA DICTIONARY RULES MENJADI SATU
+    rules_param.update(rules_bitrate)
     
     def cek_param(nama, nilai):
         for rule in rules_param[nama]:
@@ -1182,6 +1184,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
