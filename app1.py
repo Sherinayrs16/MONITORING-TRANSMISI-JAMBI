@@ -383,7 +383,7 @@ def apply_background_and_style():
 
         bg_b64 = get_base64_of_image(background_image)
         
-        overlay_opacity = '0.15' if not st.session_state['logged_in'] else '0.25'
+        overlay_opacity = '0.15' if not st.session_state['logged_in'] else '0.4'
 
         css = f"""
         <style>
@@ -999,13 +999,16 @@ def show_visualisasi_data():
 
 # ===========================
 # Fungsi Halaman Ceklist (Pengganti Tab 3)
+# *VERSI DENGAN CARD PUTIH UNTUK DESKRIPSI & REKOMENDASI*
 # ===========================
+
 def show_ceklist_harian():
     st.title("✅ Ceklist Harian Digital")
     st.write("Pilih kondisi tiap parameter.")
     
-    HOUR_OPTIONS = ['Shift 1: 00.00 - 08.00', 'Shift 2: 08:00 - 16.00', 'Shift 3: 16:00-00.00']
+    HOUR_OPTIONS = ['Shift 1: 00.00 - 08.00', 'Shift 2: 08:00 - 16.00', 'Shift 3: 16:00 - 00.00']
 
+    # --- Definisikan Kolom Final untuk Konsistensi Data ---
     FINAL_COLUMNS = [
         "TANGGAL_CEKLIST",
         "JAM_CEKLIST",
@@ -1015,22 +1018,21 @@ def show_ceklist_harian():
         FINAL_COLUMNS.append(f"{param}_KONDISI")
         FINAL_COLUMNS.append(f"{param}_REKOMENDASI")
 
+    # --- INPUT HEADER (Date, Jam, Operator) ---
     st.subheader("Informasi Catatan")
     col_date, col_hour, col_op = st.columns([1, 1, 1])
     
     with col_date:
         tanggal_catatan = st.date_input("Tanggal", key="date_note_input", value=datetime.date.today())
-        
     with col_hour:
         jam_catatan = st.selectbox("Jam", HOUR_OPTIONS, key="hour_note_input")
-        
     with col_op:
         operator_catatan = st.text_input("Operator", key="operator_note_input")
         
     st.markdown("---")
     
+    # --- CHECKLIST ITEMS (OUTSIDE FORM FOR INSTANT UPDATE) ---
     st.subheader("Pilihan Kondisi Perangkat")
-    
     hasil_ceklist = {}
     
     for param, kondisi in ceklist_rules.items():
@@ -1043,14 +1045,31 @@ def show_ceklist_harian():
             f"Kondisi {param}", 
             ["Normal", "Warning", "Trouble"], 
             horizontal=True, 
-            key=f"ceklist_{param}", 
+            key=f"ceklist_{param}",
             label_visibility="collapsed"
         )
         
         deskripsi = kondisi[pilihan]['deskripsi']
         rekomendasi = kondisi[pilihan]['rekom']
-        
-        st.markdown(f"**📌 {deskripsi}**")
+
+        # === CARD PUTIH UNTUK DESKRIPSI SETIAP PARAMETER ===
+        st.markdown(
+            f"""
+            <div style="
+                background-color: rgba(255, 255, 255, 0.85);
+                padding: 10px 15px;
+                border-radius: 10px;
+                margin-top: 5px;
+                margin-bottom: 10px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                border: 1px solid rgba(200,200,200,0.4);
+            ">
+                <b>📌 {deskripsi}</b><br>
+                <small><i>{rekomendasi}</i></small>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
         
         hasil_ceklist[param] = {
             "Kondisi": pilihan,
@@ -1058,15 +1077,59 @@ def show_ceklist_harian():
             "Rekomendasi": rekomendasi
         }
 
+    # --- ACTION BUTTONS ---
     col_rekom, col_simpan = st.columns(2)
-    
     lihat_rekom = col_rekom.button("📋 Tampilkan Rekomendasi")
     simpan_catatan = col_simpan.button("💾 Simpan Catatan Harian")
 
     if lihat_rekom:
-        st.subheader("🛠️ Rekomendasi Maintenance")
-        for p, data in hasil_ceklist.items():
-            st.markdown(f"**{p} ({data['Kondisi']}):** {data['Rekomendasi']}")
+    # Card besar putih solid
+        st.markdown(
+        """
+        <div style="
+            background-color: #ffffff;
+            padding: 25px 40px;
+            border-radius: 16px;
+            margin-top: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+            border: 1px solid rgba(220,220,220,0.8);
+        ">
+            <h3 style="text-align:center; margin-bottom:25px; color:#222;">
+                🛠️ Rekomendasi Maintenance
+            </h3>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # tampilkan tiap item
+    for p, data in hasil_ceklist.items():
+        # warna tulisan sesuai status
+        if data["Kondisi"] == "Normal":
+            color = "#1b1b1b"
+        elif data["Kondisi"] == "Warning":
+            color = "#c99500"
+        else:
+            color = "#c0392b"
+
+        st.markdown(
+            f"""
+            <div style="
+                margin:8px 0;
+                padding:6px 10px;
+                background-color: rgba(245,245,245,0.9);
+                border-radius: 6px;
+                border-left: 4px solid {color};
+                color:#000;
+                line-height:1.5;
+            ">
+                <b style="color:{color};">{p} ({data['Kondisi']}):</b> {data['Rekomendasi']}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if simpan_catatan:
         data_simpan_horizontal = {
@@ -1185,6 +1248,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
