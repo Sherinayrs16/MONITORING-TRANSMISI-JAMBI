@@ -535,6 +535,7 @@ def show_input_kalkulator():
     calc_reflected = colk2.number_input("Reflected (Watt)", min_value=0, step=1, key="calc_reflected")
 
     if st.button("🔢 Hitung VSWR"):
+        # PASTIKAN FUNGSI hitung_vswr SUDAH ADA DI GLOBAL SCOPE
         vswr_calc = hitung_vswr(calc_power, calc_reflected)
         if vswr_calc == float("inf"):
             st.error("⚠️ Reflected ≥ Power Output → VSWR tak terhingga!")
@@ -784,64 +785,66 @@ def show_input_kalkulator():
         waktu_options = ["02:00", "06:00", "10:00", "14:00", "18:00", "22:00"]
         waktu = col2_form.selectbox("Waktu", waktu_options)
 
+        # Perbaikan: min_value=0.0 untuk parameter yang bisa 0
         power_output = st.number_input("Power Output (Watt)", min_value=0, step=1)
-        vswr_input = st.number_input("VSWR", min_value=1.0, step=0.01, format="%.2f")
-        cn = st.number_input("C/N (dB)", min_value=1.0, step=0.01, format="%.2f")
-        margin = st.number_input("Margin (dB)", min_value=1.0, step=0.01, format="%.2f")
+        vswr_input = st.number_input("VSWR", min_value=0.0, step=0.01, format="%.2f", value=1.0)
+        cn = st.number_input("C/N (dB)", min_value=0.0, step=0.01, format="%.2f", value=1.0)
+        margin = st.number_input("Margin (dB)", min_value=0.0, step=0.01, format="%.2f", value=1.0)
 
         col3, col4, col5 = st.columns(3)
         teg_r = col3.number_input("Phase R", step=1, key="teg_r")
         teg_s = col4.number_input("Phase S", step=1, key="teg_s")
         teg_t = col5.number_input("Phase T", step=1, key="teg_t")
 
-        suhu_tx = st.number_input("Suhu TX (°C)", min_value=1.0, step=0.01, format="%.2f")
+        suhu_tx = st.number_input("Suhu TX (°C)", min_value=0.0, step=0.01, format="%.2f", value=1.0)
 
         st.subheader("Status Channel TV & Bitrate")
         
+        # Perbaikan: min_value=0.0 untuk semua bitrate
         st.markdown("#### NET TV")
         col_net_ok, col_net_bitrate = st.columns(2)
         net_tv = col_net_ok.selectbox("Status NET TV", ["OK", "NO"], key="net_tv_ok")
-        bitrate_net = col_net_bitrate.number_input("Bitrate NET TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="net_tv_bitrate")
+        bitrate_net = col_net_bitrate.number_input("Bitrate NET TV (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="net_tv_bitrate", value=1.0)
         
         st.markdown("#### RTV")
         col_rtv_ok, col_rtv_bitrate = st.columns(2)
         rtv = col_rtv_ok.selectbox("Status RTV", ["OK", "NO"], key="rtv_ok")
-        bitrate_rtv = col_rtv_bitrate.number_input("Bitrate RTV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="rtv_bitrate")
+        bitrate_rtv = col_rtv_bitrate.number_input("Bitrate RTV (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="rtv_bitrate", value=1.0)
         
         st.markdown("#### JAMBI TV")
         col_jambi_ok, col_jambi_bitrate = st.columns(2)
         jambi_tv = col_jambi_ok.selectbox("Status JAMBI TV", ["OK", "NO"], key="jambi_tv_ok")
-        bitrate_jambi = col_jambi_bitrate.number_input("Bitrate JAMBI TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="jambi_tv_bitrate")
+        bitrate_jambi = col_jambi_bitrate.number_input("Bitrate JAMBI TV (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="jambi_tv_bitrate", value=1.0)
         
         st.markdown("#### JEK TV")
         col_jek_ok, col_jek_bitrate = st.columns(2)
         jek_tv = col_jek_ok.selectbox("Status JEK TV", ["OK", "NO"], key="jek_tv_ok")
-        bitrate_jek = col_jek_bitrate.number_input("Bitrate JEK TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="jek_tv_bitrate")
+        bitrate_jek = col_jek_bitrate.number_input("Bitrate JEK TV (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="jek_tv_bitrate", value=1.0)
         
         st.markdown("#### SINPO TV")
         col_sinpo_ok, col_sinpo_bitrate = st.columns(2)
         sinpo_tv = col_sinpo_ok.selectbox("Status SINPO TV", ["OK", "NO"], key="sinpo_tv_ok")
-        bitrate_sinpo = col_sinpo_bitrate.number_input("Bitrate SINPO TV (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="sinpo_tv_bitrate")
+        bitrate_sinpo = col_sinpo_bitrate.number_input("Bitrate SINPO TV (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="sinpo_tv_bitrate", value=1.0)
         
         st.markdown("#### TVRI NASIONAL")
         col_tvri_nasional_ok, col_tvri_nasional_bitrate = st.columns(2)
         tvri_nasional = col_tvri_nasional_ok.selectbox("Status TVRI NASIONAL", ["OK", "NO"], key="tvri_nasional_ok")
-        bitrate_tvri_nasional = col_tvri_nasional_bitrate.number_input("Bitrate TVRI NASIONAL (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_nasional_bitrate")
+        bitrate_tvri_nasional = col_tvri_nasional_bitrate.number_input("Bitrate TVRI NASIONAL (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="tvri_nasional_bitrate", value=1.0)
         
         st.markdown("#### TVRI WORLD")
         col_tvri_world_ok, col_tvri_world_bitrate = st.columns(2)
         tvri_world = col_tvri_world_ok.selectbox("Status TVRI WORLD", ["OK", "NO"], key="tvri_world_ok")
-        bitrate_tvri_world = col_tvri_world_bitrate.number_input("Bitrate TVRI WORLD (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_world_bitrate")
+        bitrate_tvri_world = col_tvri_world_bitrate.number_input("Bitrate TVRI WORLD (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="tvri_world_bitrate", value=1.0)
         
         st.markdown("#### TVRI SPORT")
         col_tvri_sport_ok, col_tvri_sport_bitrate = st.columns(2)
         tvri_sport = col_tvri_sport_ok.selectbox("Status TVRI SPORT", ["OK", "NO"], key="tvri_sport_ok")
-        bitrate_tvri_sport = col_tvri_sport_bitrate.number_input("Bitrate TVRI SPORT (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_sport_bitrate")
+        bitrate_tvri_sport = col_tvri_sport_bitrate.number_input("Bitrate TVRI SPORT (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="tvri_sport_bitrate", value=1.0)
         
         st.markdown("#### TVRI JAMBI")
         col_tvri_jambi_ok, col_tvri_jambi_bitrate = st.columns(2)
         tvri_jambi = col_tvri_jambi_ok.selectbox("Status TVRI JAMBI", ["OK", "NO"], key="tvri_jambi_ok")
-        bitrate_tvri_jambi = col_tvri_jambi_bitrate.number_input("Bitrate TVRI JAMBI (Mbps)", min_value=1.0, step=0.01, format="%.2f", key="tvri_jambi_bitrate")
+        bitrate_tvri_jambi = col_tvri_jambi_bitrate.number_input("Bitrate TVRI JAMBI (Mbps)", min_value=0.0, step=0.01, format="%.2f", key="tvri_jambi_bitrate", value=1.0)
         
         kualitas_av = st.selectbox("Kualitas Audio / Video", ["A/V OK", "A/V NO"])
         operator = st.text_input("Operator")
@@ -856,32 +859,58 @@ def show_input_kalkulator():
         simpan_data = st.form_submit_button("✅ Simpan Data") 
 
     # ======================
-    # ANALISIS OTOMATIS
+    # ANALISIS OTOMATIS (PERBAIKAN ERROR)
     # ======================
     if lihat_rekom or simpan_data:
-        data_analisis = []
-        data_analisis.append(["Power Output (Watt)", power_output, *cek_param("Power Output (Watt)", power_output)])
-        data_analisis.append(["VSWR", vswr_input, *cek_param("VSWR", vswr_input)])
-        data_analisis.append(["C/N (dB)", cn, *cek_param("C/N (dB)", cn)])
-        data_analisis.append(["Margin (dB)", margin, *cek_param("Margin (dB)", margin)])
-        data_analisis.append(["Tegangan R (Volt)", teg_r, *cek_param("Tegangan Listrik (Volt)", teg_r)])
-        data_analisis.append(["Tegangan S (Volt)", teg_s, *cek_param("Tegangan Listrik (Volt)", teg_s)])
-        data_analisis.append(["Tegangan T (Volt)", teg_t, *cek_param("Tegangan Listrik (Volt)", teg_t)])
-        data_analisis.append(["Suhu TX (°C)", suhu_tx, *cek_param("Suhu TX (°C)", suhu_tx)])
-        # --- Memanggil cek_param dengan key spesifik per channel ---
-        data_analisis.append(["Bitrate NET TV (Mbps)", bitrate_net, *cek_param("Bitrate NET TV (Mbps)", bitrate_net)])
-        data_analisis.append(["Bitrate RTV (Mbps)", bitrate_rtv, *cek_param("Bitrate RTV (Mbps)", bitrate_rtv)])
-        data_analisis.append(["Bitrate JAMBI TV (Mbps)", bitrate_jambi, *cek_param("Bitrate JAMBI TV (Mbps)", bitrate_jambi)])
-        data_analisis.append(["Bitrate JEK TV (Mbps)", bitrate_jek, *cek_param("Bitrate JEK TV (Mbps)", bitrate_jek)])
-        data_analisis.append(["Bitrate SINPO TV (Mbps)", bitrate_sinpo, *cek_param("Bitrate SINPO TV (Mbps)", bitrate_sinpo)])
-        data_analisis.append(["Bitrate TVRI NASIONAL (Mbps)", bitrate_tvri_nasional, *cek_param("Bitrate TVRI NASIONAL (Mbps)", bitrate_tvri_nasional)])
-        data_analisis.append(["Bitrate TVRI WORLD (Mbps)", bitrate_tvri_world, *cek_param("Bitrate TVRI WORLD (Mbps)", bitrate_tvri_world)])
-        data_analisis.append(["Bitrate TVRI SPORT (Mbps)", bitrate_tvri_sport, *cek_param("Bitrate TVRI SPORT (Mbps)", bitrate_tvri_sport)])
-        data_analisis.append(["Bitrate TVRI JAMBI (Mbps)", bitrate_tvri_jambi, *cek_param("Bitrate TVRI JAMBI (Mbps)", bitrate_tvri_jambi)])
-        df_rekom = pd.DataFrame(data_analisis, columns=["Parameter", "Nilai Input", "Status", "Rekomendasi"])
+        data_analisis = [] # Ini akan menjadi list of dictionaries
+        
+        # --- PERBAIKAN: Panggil cek_param dan langsung append dictionary-nya ---
+        data_analisis.append(cek_param("Power Output (Watt)", power_output))
+        data_analisis.append(cek_param("VSWR", vswr_input))
+        data_analisis.append(cek_param("C/N (dB)", cn))
+        data_analisis.append(cek_param("Margin (dB)", margin))
 
+        # --- PERBAIKAN: Penanganan khusus untuk Tegangan R, S, T ---
+        hasil_teg_r = cek_param("Tegangan Listrik (Volt)", teg_r)
+        hasil_teg_r["Parameter"] = "Tegangan R (Volt)" # Ganti nama parameter
+        data_analisis.append(hasil_teg_r)
+        
+        hasil_teg_s = cek_param("Tegangan Listrik (Volt)", teg_s)
+        hasil_teg_s["Parameter"] = "Tegangan S (Volt)" # Ganti nama parameter
+        data_analisis.append(hasil_teg_s)
+        
+        hasil_teg_t = cek_param("Tegangan Listrik (Volt)", teg_t)
+        hasil_teg_t["Parameter"] = "Tegangan T (Volt)" # Ganti nama parameter
+        data_analisis.append(hasil_teg_t)
+        
+        data_analisis.append(cek_param("Suhu TX (°C)", suhu_tx))
+        
+        # --- Memanggil cek_param dengan key spesifik per channel ---
+        data_analisis.append(cek_param("Bitrate NET TV (Mbps)", bitrate_net))
+        data_analisis.append(cek_param("Bitrate RTV (Mbps)", bitrate_rtv))
+        data_analisis.append(cek_param("Bitrate JAMBI TV (Mbps)", bitrate_jambi))
+        data_analisis.append(cek_param("Bitrate JEK TV (Mbps)", bitrate_jek))
+        data_analisis.append(cek_param("Bitrate SINPO TV (Mbps)", bitrate_sinpo))
+        data_analisis.append(cek_param("Bitrate TVRI NASIONAL (Mbps)", bitrate_tvri_nasional))
+        data_analisis.append(cek_param("Bitrate TVRI WORLD (Mbps)", bitrate_tvri_world))
+        data_analisis.append(cek_param("Bitrate TVRI SPORT (Mbps)", bitrate_tvri_sport))
+        data_analisis.append(cek_param("Bitrate TVRI JAMBI (Mbps)", bitrate_tvri_jambi))
+        
+        # --- PERBAIKAN: Buat DataFrame dari list of dictionaries ---
+        df_rekom = pd.DataFrame(data_analisis)
+        
+        # Ganti nama kolom 'Nilai' (dari cek_param) menjadi 'Nilai Input'
+        df_rekom = df_rekom.rename(columns={"Nilai": "Nilai Input"})
+        
+        # Tentukan urutan kolom yang ingin ditampilkan
+        kolom_tampil = ["Parameter", "Nilai Input", "Status", "Keterangan", "Rekomendasi"]
+        
+        # Filter agar hanya kolom yang ada di df_rekom yang ditampilkan (mencegah error)
+        kolom_valid = [kol for kol in kolom_tampil if kol in df_rekom.columns]
+        
         st.subheader("📊 Analisa & Rekomendasi Maintenance")
-        st.dataframe(df_rekom, use_container_width=True)
+        # Tampilkan dataframe dengan kolom yang sudah diurutkan dan valid
+        st.dataframe(df_rekom[kolom_valid], use_container_width=True)
 
         # ======================
         # SIMPAN DATA JIKA DIPILIH
@@ -924,7 +953,12 @@ def show_input_kalkulator():
             if df_existing.empty:
                 df_all = df_new
             else:
-                df_existing['DUP_CHECK'] = df_existing['TANGGAL'].dt.strftime('%Y-%m-%d') + '_' + df_existing['WAKTU'].astype(str)
+                # Periksa apakah kolom DUP_CHECK ada sebelum mengaksesnya
+                if 'TANGGAL' in df_existing.columns and 'WAKTU' in df_existing.columns:
+                    df_existing['DUP_CHECK'] = df_existing['TANGGAL'].dt.strftime('%Y-%m-%d') + '_' + df_existing['WAKTU'].astype(str)
+                else:
+                    df_existing['DUP_CHECK'] = None # Buat kolom kosong jika TANGGAL/WAKTU tidak ada
+                    
                 df_new['DUP_CHECK'] = df_new['TANGGAL'].dt.strftime('%Y-%m-%d') + '_' + df_new['WAKTU'].astype(str)
                 
                 df_existing_filtered = df_existing[~df_existing['DUP_CHECK'].isin(df_new['DUP_CHECK'])]
@@ -936,7 +970,6 @@ def show_input_kalkulator():
             # Menyimpan data metering ke Google Sheet
             if save_data(df_all, data_sheet):
                 st.success(f"✅ Data berhasil ditambahkan ke Google Sheet **{data_sheet}**!")
-
 # ===========================
 # Fungsi Halaman Visualisasi (Pengganti Tab 2)
 # ===========================
@@ -1382,6 +1415,7 @@ if st.session_state['logged_in']:
         show_visualisasi_data()
     elif page == "✅ Ceklist Harian Digital":
         show_ceklist_harian()
+
 
 
 
